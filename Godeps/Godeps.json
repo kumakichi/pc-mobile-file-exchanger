@@ -1,0 +1,23 @@
+{
+	"ImportPath": "github.com/kumakichi/fileshare",
+	"GoVersion": "go1.10",
+	"GodepVersion": "v80",
+	"Deps": [
+		{
+			"ImportPath": "github.com/skip2/go-qrcode",
+			"Rev": "cf5f9fa2f0d847edb8e038db7ed975e239095e1a"
+		},
+		{
+			"ImportPath": "github.com/skip2/go-qrcode/bitset",
+			"Rev": "cf5f9fa2f0d847edb8e038db7ed975e239095e1a"
+		},
+		{
+			"ImportPath": "github.com/skip2/go-qrcode/reedsolomon",
+			"Rev": "cf5f9fa2f0d847edb8e038db7ed975e239095e1a"
+		},
+		{
+			"ImportPath": "github.com/skratchdot/open-golang/open",
+			"Rev": "75fb7ed4208cf72d323d7d02fd1a5964a7a9073c"
+		}
+	]
+}
