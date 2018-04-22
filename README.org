@@ -1,0 +1,10 @@
+* About
+  This program helps you sharing files on PC, by starting a web server, along with a QR code showing in your default web browser.
+
+  Then, by scanning the QR code, you can get the file share link. You can use any device under the same LAN with the PC to access the link to get the files.
+* How to use
+
+  Quite simple, just type
+#+BEGIN_SRC go
+  fileshare -h
+#+END_SRC
