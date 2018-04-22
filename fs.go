@@ -37,11 +37,12 @@ func main() {
 	}
 
 	ips := getIPs()
-	fmt.Println(selectInterface(ips))
-	return
+	intf := selectInterface(ips)
+	host := fmt.Sprintf("%s:%d", ips[intf], port)
 
 	http.HandleFunc(qrPattern, func(w http.ResponseWriter, r *http.Request) {
-		b, err := qrcode.Encode("http://192.168.1.5:8000/file", qrcode.Highest, 256)
+		filePath := fmt.Sprintf("%s%s", host, filePattern)
+		b, err := qrcode.Encode(filePath, qrcode.Highest, 256)
 		if err != nil {
 			log.Fatal(err)
 		} else {
@@ -50,9 +51,8 @@ func main() {
 	})
 	http.Handle(filePattern, http.StripPrefix(filePattern, http.FileServer(http.Dir(directory))))
 
-	host := fmt.Sprintf(":%d", port)
 	log.Printf("Listen at %s\n", host)
-	open.Run("http://localhost" + host + "/qrcode")
+	open.Run("http://" + host + qrPattern)
 	log.Fatal(http.ListenAndServe(host, nil))
 }
 
@@ -71,8 +71,6 @@ func selectInterface(ips map[string]string) string {
 	default:
 		keys := keys(ips)
 		go readUserInput(keys, ch)
-		//TODO: user select
-		//return ""
 		select {
 		case <-time.After(time.Second * time.Duration(timeout)):
 			fmt.Println("user not inputted")
@@ -80,8 +78,9 @@ func selectInterface(ips map[string]string) string {
 		case input, ok := <-ch:
 			if ok && input >= 0 && input < len(keys) {
 				fmt.Printf("Using %s\t%s\n", keys[input], ips[keys[input]])
+				return keys[input]
 			} else {
-				fmt.Printf("Invalid index got, we will listen on all interfaces.\n")
+				log.Fatal("Invalid index.")
 			}
 		}
 	}
