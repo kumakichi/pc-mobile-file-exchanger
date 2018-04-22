@@ -41,8 +41,7 @@ func main() {
 	host := fmt.Sprintf("%s:%d", ips[intf], port)
 
 	http.HandleFunc(qrPattern, func(w http.ResponseWriter, r *http.Request) {
-		filePath := fmt.Sprintf("%s%s", host, filePattern)
-		b, err := qrcode.Encode(filePath, qrcode.Highest, 256)
+		b, err := qrcode.Encode("http://"+host+filePattern, qrcode.Highest, 256)
 		if err != nil {
 			log.Fatal(err)
 		} else {
@@ -52,6 +51,8 @@ func main() {
 	http.Handle(filePattern, http.StripPrefix(filePattern, http.FileServer(http.Dir(directory))))
 
 	log.Printf("Listen at %s\n", host)
+	log.Printf("Access files by http://%s\n", host+filePattern)
+
 	open.Run("http://" + host + qrPattern)
 	log.Fatal(http.ListenAndServe(host, nil))
 }
@@ -73,8 +74,9 @@ func selectInterface(ips map[string]string) string {
 		go readUserInput(keys, ch)
 		select {
 		case <-time.After(time.Second * time.Duration(timeout)):
-			fmt.Println("user not inputted")
-			return ""
+			fmt.Println()
+			log.Printf("Input timeout, using %s\t%s\n", keys[0], ips[keys[0]])
+			return keys[0]
 		case input, ok := <-ch:
 			if ok && input >= 0 && input < len(keys) {
 				fmt.Printf("Using %s\t%s\n", keys[input], ips[keys[input]])
@@ -94,7 +96,7 @@ func readUserInput(keys []string, ch chan int) {
 		fmt.Printf("%d\t(%s)\n", i, v)
 	}
 
-	fmt.Printf("Please input the interface index: ")
+	fmt.Printf("Please input the interface index[0]: ")
 	var idx int
 	fmt.Scanf("%d", &idx)
 	ch <- idx
