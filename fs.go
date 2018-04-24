@@ -37,8 +37,8 @@ func main() {
 	}
 
 	ips := getIPs()
-	intf := selectInterface(ips)
-	host := fmt.Sprintf("%s:%d", ips[intf], port)
+	ip := selectInterface(ips)
+	host := fmt.Sprintf("%s:%d", ip, port)
 
 	http.HandleFunc(qrPattern, func(w http.ResponseWriter, r *http.Request) {
 		b, err := qrcode.Encode("http://"+host+filePattern, qrcode.Highest, 256)
