@@ -15,6 +15,7 @@ var (
 	help      bool
 	directory string
 	timeout   int
+	noqrcode  bool
 )
 
 const (
@@ -27,6 +28,7 @@ func init() {
 	flag.BoolVar(&help, "h", false, "Print this help infomation")
 	flag.StringVar(&directory, "d", ".", "File server root path")
 	flag.IntVar(&timeout, "t", 5, "Select timeout in seconds, when you have more than 1 NIC, you need to select one, or we will use all the NICs")
+	flag.BoolVar(&noqrcode, "n", false, "Only serve file, do not generate and open QR code")
 }
 
 func main() {
@@ -40,20 +42,24 @@ func main() {
 	ip := selectInterface(ips)
 	host := fmt.Sprintf("%s:%d", ip, port)
 
-	http.HandleFunc(qrPattern, func(w http.ResponseWriter, r *http.Request) {
-		b, err := qrcode.Encode("http://"+host+filePattern, qrcode.Highest, 256)
-		if err != nil {
-			log.Fatal(err)
-		} else {
-			w.Write(b)
-		}
-	})
+	if noqrcode == false {
+		http.HandleFunc(qrPattern, func(w http.ResponseWriter, r *http.Request) {
+			b, err := qrcode.Encode("http://"+host+filePattern, qrcode.Highest, 256)
+			if err != nil {
+				log.Fatal(err)
+			} else {
+				w.Write(b)
+			}
+		})
+	}
 	http.Handle(filePattern, http.StripPrefix(filePattern, http.FileServer(http.Dir(directory))))
 
 	log.Printf("Listen at %s\n", host)
 	log.Printf("Access files by http://%s\n", host+filePattern)
 
-	open.Run("http://" + host + qrPattern)
+	if noqrcode == false {
+		open.Run("http://" + host + qrPattern)
+	}
 	log.Fatal(http.ListenAndServe(host, nil))
 }
 
@@ -76,11 +82,11 @@ func selectInterface(ips map[string]string) string {
 		case <-time.After(time.Second * time.Duration(timeout)):
 			fmt.Println()
 			log.Printf("Input timeout, using %s\t%s\n", keys[0], ips[keys[0]])
-			return keys[0]
+			return ips[keys[0]]
 		case input, ok := <-ch:
 			if ok && input >= 0 && input < len(keys) {
 				fmt.Printf("Using %s\t%s\n", keys[input], ips[keys[input]])
-				return keys[input]
+				return ips[keys[input]]
 			} else {
 				log.Fatal("Invalid index.")
 			}
