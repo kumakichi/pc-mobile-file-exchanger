@@ -110,13 +110,13 @@ func wrapHandler(h http.Handler) http.HandlerFunc {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	t, _ := template.ParseFiles("templates/index.tpl")
+	t, _ := template.New("index").Parse(indexTemplate)
 	t.Execute(w, FromTo{baseURI + filePattern, baseURI + uploadPattern})
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		t, _ := template.ParseFiles("templates/upload.tpl")
+		t, _ := template.New("up").Parse(uploadTemplate)
 		t.Execute(w, nil)
 	} else {
 		r.ParseMultipartForm(32 << 20)
@@ -136,7 +136,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		defer f.Close()
 		io.Copy(f, file)
 		absPath, _ := filepath.Abs(upDirectory)
-		t, _ := template.ParseFiles("templates/upload_result.tpl")
+		t, _ := template.New("result").Parse(upResultTemplate)
 		t.Execute(w, UpResult{FromTo{baseURI + filePattern, baseURI + uploadPattern}, baseURI + indexPattern, handler.Filename, absPath})
 	}
 }
