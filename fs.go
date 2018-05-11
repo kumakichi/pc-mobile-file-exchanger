@@ -62,7 +62,7 @@ func main() {
 	ips := getIPs()
 	ip := selectInterface(ips)
 	host := fmt.Sprintf("%s:%d", ip, port)
-	baseURI := "http://" + host
+	baseURI = "http://" + host
 
 	if noqrcode == false {
 		http.HandleFunc(qrPattern, func(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +74,7 @@ func main() {
 			}
 		})
 	}
-	http.Handle(filePattern, http.StripPrefix(filePattern, http.FileServer(http.Dir(directory))))
+	http.Handle(filePattern, http.StripPrefix(filePattern, wrapHandler(http.FileServer(http.Dir(directory)))))
 	http.HandleFunc(uploadPattern, uploadHandler)
 	http.HandleFunc(indexPattern, indexHandler)
 
@@ -85,6 +85,28 @@ func main() {
 		open.Run(baseURI + qrPattern)
 	}
 	log.Fatal(http.ListenAndServe(host, nil))
+}
+
+func wrapHandler(h http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		style := `
+<!DOCTYPE html>
+<head>
+    <title>Choose</title>
+    <style>
+        pre {
+            text-align: center;
+            font-size:300%;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+`
+		w.Write([]byte(style))
+		h.ServeHTTP(w, r)
+		w.Write([]byte("</body>"))
+	}
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
