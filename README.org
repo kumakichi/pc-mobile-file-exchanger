@@ -1,8 +1,14 @@
 * About
-  This program helps you sharing files on PC, by starting a web server, along with a QR code showing in your default web browser.
+  This program helps you exchanging files between PC and Mobile Devices
 
-  Then, by scanning the QR code, you can get the file share link. You can use any device under the same LAN with the PC to access the link to get the files.
-* How to use
+  After starting this program on PC, a QR code will be shown in your default web browser
+
+  Use your Mobile Device to scan this QR code, open the link in navigator, then you can choose *get files from PC* or *upload file to PC*
+** get files from PC
+   Choose *Get file from PC*
+** upload file to PC
+   Choose *Upload file to PC*
+* How to use / Options
 
   Quite simple, just type
 #+BEGIN_SRC go
