@@ -5,28 +5,42 @@ import (
 	"fmt"
 	"github.com/skip2/go-qrcode"
 	"github.com/skratchdot/open-golang/open"
+	"html/template"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 )
 
 var (
-	port      int
-	help      bool
-	directory string
-	timeout   int
-	noqrcode  bool
+	port        int
+	help        bool
+	directory   string
+	upDirectory string
+	timeout     int
+	noqrcode    bool
+	baseURI     string
 )
 
+type IndexPage struct {
+	FromPC string
+	ToPC   string
+}
+
 const (
-	qrPattern   = "/qrcode"
-	filePattern = "/file/"
+	qrPattern     = "/qrcode"
+	filePattern   = "/file/"
+	indexPattern  = "/index"
+	uploadPattern = "/upload"
 )
 
 func init() {
 	flag.IntVar(&port, "p", 8000, "Listen port")
 	flag.BoolVar(&help, "h", false, "Print this help infomation")
 	flag.StringVar(&directory, "d", ".", "File server root path")
+	flag.StringVar(&upDirectory, "u", ".", "Upload files root path")
 	flag.IntVar(&timeout, "t", 5, "Select timeout in seconds, when you have more than 1 NIC, you need to select one, or we will use all the NICs")
 	flag.BoolVar(&noqrcode, "n", false, "Only serve file, do not generate and open QR code")
 }
@@ -41,10 +55,11 @@ func main() {
 	ips := getIPs()
 	ip := selectInterface(ips)
 	host := fmt.Sprintf("%s:%d", ip, port)
+	baseURI := "http://" + host
 
 	if noqrcode == false {
 		http.HandleFunc(qrPattern, func(w http.ResponseWriter, r *http.Request) {
-			b, err := qrcode.Encode("http://"+host+filePattern, qrcode.Highest, 256)
+			b, err := qrcode.Encode(baseURI+indexPattern, qrcode.Highest, 256)
 			if err != nil {
 				log.Fatal(err)
 			} else {
@@ -53,14 +68,47 @@ func main() {
 		})
 	}
 	http.Handle(filePattern, http.StripPrefix(filePattern, http.FileServer(http.Dir(directory))))
+	http.HandleFunc(uploadPattern, uploadHandler)
+	http.HandleFunc(indexPattern, indexHandler)
 
 	log.Printf("Listen at %s\n", host)
 	log.Printf("Access files by http://%s\n", host+filePattern)
 
 	if noqrcode == false {
-		open.Run("http://" + host + qrPattern)
+		open.Run(baseURI + qrPattern)
 	}
 	log.Fatal(http.ListenAndServe(host, nil))
+}
+
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	t, _ := template.ParseFiles("templates/index.tpl")
+	t.Execute(w, IndexPage{baseURI + filePattern, baseURI + uploadPattern})
+}
+
+func uploadHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		t, _ := template.ParseFiles("templates/upload.tpl")
+		t.Execute(w, nil)
+	} else {
+		r.ParseMultipartForm(32 << 20)
+		file, handler, err := r.FormFile("upfile")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer file.Close()
+		upFilePath := filepath.Join(upDirectory, handler.Filename)
+		absolutePath, _ := filepath.Abs(upFilePath)
+		fmt.Fprintf(w, "File uploaded to %s", absolutePath)
+		f, err := os.OpenFile(upFilePath, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			fmt.Println(err)
+			fmt.Fprintf(w, "%v", err)
+			return
+		}
+		defer f.Close()
+		io.Copy(f, file)
+	}
 }
 
 func selectInterface(ips map[string]string) string {
