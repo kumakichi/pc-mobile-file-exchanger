@@ -89,23 +89,14 @@ func main() {
 
 func wrapHandler(h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		style := `
-<!DOCTYPE html>
-<head>
-    <title>Choose</title>
-    <style>
-        pre {
-            text-align: center;
-            font-size:300%;
-            margin: auto;
-        }
-    </style>
-</head>
-<body>
-`
-		w.Write([]byte(style))
-		h.ServeHTTP(w, r)
-		w.Write([]byte("</body>"))
+		s := []rune(r.RequestURI)
+		if s[len(s)-1] == '/' {
+			w.Write([]byte(customFSHead))
+			h.ServeHTTP(w, r)
+			w.Write([]byte(customFSTail))
+		} else {
+			h.ServeHTTP(w, r)
+		}
 	}
 }
 

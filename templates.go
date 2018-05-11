@@ -62,4 +62,23 @@ const (
    <br>
    <a href="{{.ToIndex}}">Get Back to index page</a>
 </body>`
+
+	customFSHead = `
+<!DOCTYPE html>
+<head>
+    <title>Choose</title>
+    <style>
+        pre {
+            text-align: center;
+            font-size:300%;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+`
+
+	customFSTail = `
+</body>
+`
 )
