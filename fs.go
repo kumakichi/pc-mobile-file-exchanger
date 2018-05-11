@@ -24,9 +24,16 @@ var (
 	baseURI     string
 )
 
-type IndexPage struct {
+type FromTo struct {
 	FromPC string
 	ToPC   string
+}
+
+type UpResult struct {
+	FromTo
+	ToIndex  string
+	FileName string
+	FilePath string
 }
 
 const (
@@ -82,7 +89,7 @@ func main() {
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	t, _ := template.ParseFiles("templates/index.tpl")
-	t.Execute(w, IndexPage{baseURI + filePattern, baseURI + uploadPattern})
+	t.Execute(w, FromTo{baseURI + filePattern, baseURI + uploadPattern})
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
@@ -98,8 +105,6 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		defer file.Close()
 		upFilePath := filepath.Join(upDirectory, handler.Filename)
-		absolutePath, _ := filepath.Abs(upFilePath)
-		fmt.Fprintf(w, "File uploaded to %s", absolutePath)
 		f, err := os.OpenFile(upFilePath, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			fmt.Println(err)
@@ -108,6 +113,9 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		defer f.Close()
 		io.Copy(f, file)
+		absPath, _ := filepath.Abs(upDirectory)
+		t, _ := template.ParseFiles("templates/upload_result.tpl")
+		t.Execute(w, UpResult{FromTo{baseURI + filePattern, baseURI + uploadPattern}, baseURI + indexPattern, handler.Filename, absPath})
 	}
 }
 
