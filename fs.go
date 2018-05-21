@@ -135,7 +135,6 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 func selectInterface(ips map[string]string) string {
 	length := len(ips)
 	ch := make(chan int, 1)
-	defer func() { close(ch) }()
 
 	switch {
 	case length < 1:
@@ -166,6 +165,7 @@ func selectInterface(ips map[string]string) string {
 }
 
 func readUserInput(keys []string, ch chan int) {
+	defer func() { close(ch) }()
 	fmt.Printf("You hava more than 1 NIC, please select one, or we listen on all the NICs.\n\n")
 	for i, v := range keys {
 		fmt.Printf("%d\t(%s)\n", i, v)
