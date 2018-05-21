@@ -145,7 +145,7 @@ func selectInterface(ips map[string]string) string {
 		}
 	default:
 		keys := keys(ips)
-		go readUserInput(keys, ch)
+		go readUserInput(keys, ips, ch)
 		select {
 		case <-time.After(time.Second * time.Duration(timeout)):
 			fmt.Println()
@@ -164,11 +164,11 @@ func selectInterface(ips map[string]string) string {
 	return ""
 }
 
-func readUserInput(keys []string, ch chan int) {
+func readUserInput(keys []string, ips map[string]string, ch chan int) {
 	defer func() { close(ch) }()
 	fmt.Printf("You hava more than 1 NIC, please select one, or we listen on all the NICs.\n\n")
 	for i, v := range keys {
-		fmt.Printf("%d\t(%s)\n", i, v)
+		fmt.Printf("%2d\t%-16s\t%-s\n", i, v, ips[v])
 	}
 
 	fmt.Printf("Please input the interface index[0]: ")
