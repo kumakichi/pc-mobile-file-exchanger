@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -22,6 +24,7 @@ var (
 	timeout     int
 	noqrcode    bool
 	baseURI     string
+	wg          sync.WaitGroup
 )
 
 type FromTo struct {
@@ -31,16 +34,18 @@ type FromTo struct {
 
 type UpResult struct {
 	FromTo
-	ToIndex  string
-	FileName string
-	FilePath string
+	ToIndex     string
+	OkFiles     string
+	FailedFiles string
+	FilePath    string
 }
 
 const (
-	qrPattern     = "/qrcode"
-	filePattern   = "/file/"
-	indexPattern  = "/index"
-	uploadPattern = "/upload"
+	qrPattern        = "/qrcode"
+	filePattern      = "/file/"
+	indexPattern     = "/index"
+	uploadPattern    = "/upload"
+	maxUploadFileNum = 5
 )
 
 func init() {
@@ -91,6 +96,15 @@ func wrapHandler(h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		s := []rune(r.RequestURI)
 		if s[len(s)-1] == '/' {
+			w.Write([]byte(`<div class="container">`))
+			w.Write([]byte(`<a href="` + baseURI + uploadPattern + `" class="child">To upload page</a>`))
+			if noqrcode == true {
+				w.Write([]byte(`<a href="#" class="child">To QR Code page</a>`))
+			} else {
+				w.Write([]byte(`<a href="` + baseURI + qrPattern + `" class="child">To QR Code page</a>`))
+			}
+			w.Write([]byte(`<a href="` + baseURI + indexPattern + `" class="child">To Index page</a>`))
+			w.Write([]byte(`</div>`))
 			w.Write([]byte(customFSHead))
 			h.ServeHTTP(w, r)
 			w.Write([]byte(customFSTail))
@@ -111,24 +125,65 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		t.Execute(w, nil)
 	} else {
 		r.ParseMultipartForm(32 << 20)
-		file, handler, err := r.FormFile("upfile")
-		if err != nil {
-			fmt.Println(err)
-			return
+
+		wg.Add(maxUploadFileNum)
+
+		type upStat struct {
+			name string
+			isOk bool
 		}
-		defer file.Close()
-		upFilePath := filepath.Join(upDirectory, handler.Filename)
-		f, err := os.OpenFile(upFilePath, os.O_WRONLY|os.O_CREATE, 0666)
-		if err != nil {
-			fmt.Println(err)
-			fmt.Fprintf(w, "%v", err)
-			return
+		okFiles := ""
+		failedFiles := ""
+		upStatCh := make(chan upStat)
+		go func() {
+			for {
+				if v, ok := <-upStatCh; ok {
+					if v.isOk {
+						okFiles += "," + v.name
+					} else {
+						failedFiles += "," + v.name
+					}
+				} else {
+					break
+				}
+			}
+		}()
+
+		for i := 1; i <= maxUploadFileNum; i++ {
+			go func(idx int) {
+				defer wg.Done()
+				file, handler, err := r.FormFile(fmt.Sprintf("upfile%d", idx))
+				if err != nil {
+					log.Println(err)
+					return
+				}
+				defer file.Close()
+				fname := handler.Filename
+				if fname == "" {
+					return // not selected
+				}
+
+				upFilePath := filepath.Join(upDirectory, fname)
+				f, err := os.OpenFile(upFilePath, os.O_WRONLY|os.O_CREATE, 0666)
+				if err != nil {
+					upStatCh <- upStat{fname, false}
+					log.Println(err)
+					return
+				}
+				defer f.Close()
+				io.Copy(f, file)
+				upStatCh <- upStat{fname, true}
+			}(i)
 		}
-		defer f.Close()
-		io.Copy(f, file)
+
+		wg.Wait()
+		close(upStatCh)
+
 		absPath, _ := filepath.Abs(upDirectory)
 		t, _ := template.New("result").Parse(upResultTemplate)
-		t.Execute(w, UpResult{FromTo{baseURI + filePattern, baseURI + uploadPattern}, baseURI + indexPattern, handler.Filename, absPath})
+		okFiles = strings.Replace(okFiles, ",", "", 1)
+		failedFiles = strings.Replace(failedFiles, ",", "", 1)
+		t.Execute(w, UpResult{FromTo{baseURI + filePattern, baseURI + uploadPattern}, baseURI + indexPattern, okFiles, failedFiles, absPath})
 	}
 }
 

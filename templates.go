@@ -35,7 +35,15 @@ const (
 </head>
 <body>
    <form action='/upload' method='post' enctype="multipart/form-data">
-      <input id='uploadInput' class='uniform-file' name='upfile' type='file'/>
+      <input id='uploadInput1' class='uniform-file' name='upfile1' type='file'/>
+      <input id='uploadInput2' class='uniform-file' name='upfile2' type='file'/>
+      <input id='uploadInput3' class='uniform-file' name='upfile3' type='file'/>
+      <input id='uploadInput4' class='uniform-file' name='upfile4' type='file'/>
+      <input id='uploadInput5' class='uniform-file' name='upfile5' type='file'/>
+      <br>
+      <br>
+      <br>
+      <br>
       <input type="submit" value="upload" />
    </form>
 </body>`
@@ -53,7 +61,10 @@ const (
    </style>
 </head>
 <body>
-   <p>{{.FileName}} was uploaded to {{.FilePath}}</p>
+   <p>{{.OkFiles}} was/were uploaded to {{.FilePath}}</p>
+   {{ if (ne .FailedFiles "") }}
+   <p>{{.FailedFiles}} was/were failed to upload</p>
+   {{ end }}
    <a href="{{.FromPC}}">Get Back to files page</a>
    <br>
    <br>
@@ -72,6 +83,16 @@ const (
             text-align: center;
             font-size:300%;
             margin: auto;
+        }
+        .container {
+            overflow: hidden;
+            zoom: 1;
+            border: 1px solid red;
+        }
+        .child {
+            float: left;
+            width: 33%;
+            border: 1px solid greenyellow;
         }
     </style>
 </head>
