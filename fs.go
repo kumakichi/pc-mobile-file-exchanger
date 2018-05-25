@@ -32,9 +32,17 @@ type FromTo struct {
 	ToPC   string
 }
 
-type UpResult struct {
+type Head struct {
 	FromTo
-	ToIndex     string
+	NoQrcode bool
+	ToQrcode string
+	ToIndex  string
+	Title    string
+	FontSize int
+}
+
+type UpResult struct {
+	Head
 	OkFiles     string
 	FailedFiles string
 	FilePath    string
@@ -79,7 +87,7 @@ func main() {
 			}
 		})
 	}
-	http.Handle(filePattern, http.StripPrefix(filePattern, wrapHandler(http.FileServer(http.Dir(directory)))))
+	http.Handle(filePattern, http.StripPrefix(filePattern, wrapFSHandler(http.FileServer(http.Dir(directory)))))
 	http.HandleFunc(uploadPattern, uploadHandler)
 	http.HandleFunc(indexPattern, indexHandler)
 
@@ -92,22 +100,13 @@ func main() {
 	log.Fatal(http.ListenAndServe(host, nil))
 }
 
-func wrapHandler(h http.Handler) http.HandlerFunc {
+func wrapFSHandler(h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		s := []rune(r.RequestURI)
 		if s[len(s)-1] == '/' {
-			w.Write([]byte(`<div class="container">`))
-			w.Write([]byte(`<a href="` + baseURI + uploadPattern + `" class="child">To upload page</a>`))
-			if noqrcode == true {
-				w.Write([]byte(`<a href="#" class="child">To QR Code page</a>`))
-			} else {
-				w.Write([]byte(`<a href="` + baseURI + qrPattern + `" class="child">To QR Code page</a>`))
-			}
-			w.Write([]byte(`<a href="` + baseURI + indexPattern + `" class="child">To Index page</a>`))
-			w.Write([]byte(`</div>`))
-			w.Write([]byte(customFSHead))
+			t, _ := template.New("head").Parse(customHead)
+			t.Execute(w, Head{FromTo{"", baseURI + uploadPattern}, noqrcode, baseURI + qrPattern, baseURI + indexPattern, "Get Files", 300})
 			h.ServeHTTP(w, r)
-			w.Write([]byte(customFSTail))
 		} else {
 			h.ServeHTTP(w, r)
 		}
@@ -116,13 +115,14 @@ func wrapHandler(h http.Handler) http.HandlerFunc {
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	t, _ := template.New("index").Parse(indexTemplate)
-	t.Execute(w, FromTo{baseURI + filePattern, baseURI + uploadPattern})
+	//t.Execute(w, FromTo{baseURI + filePattern, baseURI + uploadPattern})
+	t.Execute(w, Head{FromTo{baseURI + filePattern, ""}, noqrcode, baseURI + qrPattern, baseURI + indexPattern, "Index Page", 300})
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		t, _ := template.New("up").Parse(uploadTemplate)
-		t.Execute(w, nil)
+		t.Execute(w, Head{FromTo{baseURI + filePattern, ""}, noqrcode, baseURI + qrPattern, baseURI + indexPattern, "Upload Files", 300})
 	} else {
 		r.ParseMultipartForm(32 << 20)
 
@@ -183,7 +183,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		t, _ := template.New("result").Parse(upResultTemplate)
 		okFiles = strings.Replace(okFiles, ",", "", 1)
 		failedFiles = strings.Replace(failedFiles, ",", "", 1)
-		t.Execute(w, UpResult{FromTo{baseURI + filePattern, baseURI + uploadPattern}, baseURI + indexPattern, okFiles, failedFiles, absPath})
+		t.Execute(w, UpResult{Head{FromTo{"", baseURI + uploadPattern}, noqrcode, baseURI + qrPattern, baseURI + indexPattern, "Upload Result", 300}, okFiles, failedFiles, absPath})
 	}
 }
 
