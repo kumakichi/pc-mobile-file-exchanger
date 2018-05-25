@@ -1,11 +1,15 @@
 package main
 
 const (
-	indexTemplate = `
+	indexTemplate = customHead + `
 <!DOCTYPE html>
 <head>
-   <title>Choose</title>
    <style>
+        .child {
+            float: center;
+            width: 100%;
+            height: 33%;
+        }
       body {
           text-align: center;
           font-size:400%;
@@ -13,26 +17,9 @@ const (
       }
    </style>
 </head>
-<body>
-   <a href="{{.FromPC}}">Get file from PC</a>
-   <br>
-   <br>
-   <a href="{{.ToPC}}">Upload file to PC</a>
-</body>`
+`
 
-	uploadTemplate = `
-<!DOCTYPE html>
-<head>
-   <title>Upload file</title>
-   <style>
-      form{
-          text-align: center;
-      }
-      input {
-          font-size:300%;
-      }
-   </style>
-</head>
+	uploadTemplate = customHead + `
 <body>
    <form action='/upload' method='post' enctype="multipart/form-data">
       <input id='uploadInput1' class='uniform-file' name='upfile1' type='file'/>
@@ -48,40 +35,40 @@ const (
    </form>
 </body>`
 
-	upResultTemplate = `
-<!DOCTYPE html>
-<head>
-   <title>Upload succeed</title>
-   <style>
-      body {
-          text-align: center;
-          font-size:400%;
-          margin: auto;
-      }
-   </style>
-</head>
+	upResultTemplate = customHead + `
 <body>
-   <p>{{.OkFiles}} was/were uploaded to {{.FilePath}}</p>
+   <p style="font-size: 200%;">{{.OkFiles}} was/were uploaded to {{.FilePath}}</p>
    {{ if (ne .FailedFiles "") }}
-   <p>{{.FailedFiles}} was/were failed to upload</p>
+     <br>
+     <br>
+     <p style="font-size: 200%;">{{.FailedFiles}} was/were failed to upload</p>
    {{ end }}
-   <a href="{{.FromPC}}">Get Back to files page</a>
-   <br>
-   <br>
-   <a href="{{.ToPC}}">Get Back to upload page</a>
-   <br>
-   <br>
-   <a href="{{.ToIndex}}">Get Back to index page</a>
 </body>`
 
-	customFSHead = `
+	customHead = `
+<div class="container">
+{{ if (ne .ToPC "") }}
+  <a href="{{ .ToPC }}" class="child">Upload</a>
+{{ else }}
+  <a href="{{ .FromPC }}" class="child">Get Files</a>
+{{ end }}
+
+{{ if (ne .NoQrcode true) }}
+  <a href="{{ .ToQrcode }}" class="child">QR Code</a>
+{{ else }}
+  <a href="#" class="child">QR Code</a>
+{{ end }}
+
+<a href="{{ .ToIndex }}" class="child">Index</a>
+</div>
+
 <!DOCTYPE html>
 <head>
-    <title>Choose</title>
+    <title>{{ .Title }}</title>
     <style>
         pre {
             text-align: center;
-            font-size:300%;
+            font-size: {{ .FontSize }}%;
             margin: auto;
         }
         .container {
@@ -93,13 +80,15 @@ const (
             float: left;
             width: 33%;
             border: 1px solid greenyellow;
+            font-size: {{ .FontSize }}%;
+        }
+        form{
+            text-align: center;
+        }
+        input {
+            font-size: {{ .FontSize }}%;
         }
     </style>
 </head>
-<body>
-`
-
-	customFSTail = `
-</body>
 `
 )
