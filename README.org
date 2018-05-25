@@ -4,12 +4,18 @@
   After starting this program on PC, a QR code will be shown in your default web browser
 
   Use your Mobile Device to scan this QR code, open the link in navigator, then you can choose *get files from PC* or *upload file to PC*
+
+  [[./scrots/index.png]]
+
 ** get files from PC
    Choose *Get file from PC*
-   [[./scrots/file.jpg]]
+   [[./scrots/files.png]]
 ** upload file to PC
    Choose *Upload file to PC*
-   [[./scrots/upload.jpg]]
+   [[./scrots/uploadSelect.png]]
+
+   Upload result
+   [[./scrots/result.png]]
 * How to use / Options
 
   Quite simple, just type
