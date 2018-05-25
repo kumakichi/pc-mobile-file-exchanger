@@ -6,7 +6,7 @@ const (
 <head>
    <style>
         .child {
-            float: center;
+            float: left;
             width: 100%;
             height: 33%;
         }
