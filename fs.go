@@ -116,7 +116,7 @@ func wrapFSHandler(h http.Handler) http.HandlerFunc {
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	t, _ := template.New("index").Parse(indexTemplate)
 	//t.Execute(w, FromTo{baseURI + filePattern, baseURI + uploadPattern})
-	t.Execute(w, Head{FromTo{baseURI + filePattern, ""}, noqrcode, baseURI + qrPattern, baseURI + indexPattern, "Index Page", 300})
+	t.Execute(w, Head{FromTo{baseURI + filePattern, ""}, noqrcode, baseURI + qrPattern, baseURI + uploadPattern, "Index Page", 300})
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {

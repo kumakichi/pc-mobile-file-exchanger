@@ -59,7 +59,11 @@ const (
   <a href="#" class="child">QR Code</a>
 {{ end }}
 
-<a href="{{ .ToIndex }}" class="child">Index</a>
+{{ if (ne .Title "Index Page") }}
+  <a href="{{ .ToIndex }}" class="child">Index</a>
+{{ else }}
+  <a href="{{ .ToIndex }}" class="child">Upload</a>
+{{ end }}
 </div>
 
 <!DOCTYPE html>
