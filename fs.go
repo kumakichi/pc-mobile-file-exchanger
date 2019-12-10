@@ -3,8 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/skip2/go-qrcode"
-	"github.com/skratchdot/open-golang/open"
 	"html/template"
 	"io"
 	"log"
@@ -15,17 +13,23 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/skip2/go-qrcode"
+	"github.com/skratchdot/open-golang/open"
 )
 
 var (
-	port        int
-	help        bool
-	directory   string
-	upDirectory string
-	timeout     int
-	noqrcode    bool
-	baseURI     string
-	wg          sync.WaitGroup
+	port             int
+	help             bool
+	directory        string
+	upDirectory      string
+	timeout          int
+	noQRCode         bool
+	noDir            bool
+	baseURI          string
+	suffix           string
+	filenameContains string
+	wg               sync.WaitGroup
 )
 
 type FromTo struct {
@@ -62,8 +66,11 @@ func init() {
 	flag.BoolVar(&help, "h", false, "Print this help infomation")
 	flag.StringVar(&directory, "d", ".", "File server root path")
 	flag.StringVar(&upDirectory, "u", ".", "Upload files root path")
+	flag.StringVar(&suffix, "s", "", "Suffix of filename, only matched file will be shown")
+	flag.StringVar(&filenameContains, "f", "", "Substring of filename, only matched file/dirs will be shown")
 	flag.IntVar(&timeout, "t", 5, "Select timeout in seconds, when you have more than 1 NIC, you need to select one, or we will use all the NICs")
-	flag.BoolVar(&noqrcode, "n", false, "Only serve file, do not generate and open QR code")
+	flag.BoolVar(&noQRCode, "n", false, "Only serve file, do not generate and open QR code")
+	flag.BoolVar(&noDir, "nd", false, "Do not show directory, serve only files")
 }
 
 func main() {
@@ -79,7 +86,7 @@ func main() {
 	host := fmt.Sprintf("%s:%d", ip, port)
 	baseURI = "http://" + host
 
-	if noqrcode == false {
+	if noQRCode == false {
 		http.HandleFunc(qrPattern, func(w http.ResponseWriter, r *http.Request) {
 			b, err := qrcode.Encode(baseURI+indexPattern, qrcode.Highest, 256)
 			if err != nil {
@@ -89,14 +96,15 @@ func main() {
 			}
 		})
 	}
-	http.Handle(filePattern, http.StripPrefix(filePattern, wrapFSHandler(http.FileServer(http.Dir(directory)))))
+
+	http.Handle(filePattern, http.StripPrefix(filePattern, wrapFSHandler(FileServer(http.Dir(directory)))))
 	http.HandleFunc(uploadPattern, uploadHandler)
 	http.HandleFunc(indexPattern, indexHandler)
 
 	log.Printf("Listen at %s\n", host)
 	log.Printf("Access files by http://%s\n", host+filePattern)
 
-	if noqrcode == false {
+	if noQRCode == false {
 		open.Run(baseURI + qrPattern)
 	}
 	log.Fatal(http.ListenAndServe(host, nil))
@@ -107,7 +115,7 @@ func wrapFSHandler(h http.Handler) http.HandlerFunc {
 		s := []rune(r.RequestURI)
 		if s[len(s)-1] == '/' {
 			t, _ := template.New("head").Parse(customHead)
-			t.Execute(w, Head{FromTo{"", baseURI + uploadPattern}, noqrcode, baseURI + qrPattern, baseURI + indexPattern, "Get Files", 300})
+			t.Execute(w, Head{FromTo{"", baseURI + uploadPattern}, noQRCode, baseURI + qrPattern, baseURI + indexPattern, "Get Files", 300})
 			h.ServeHTTP(w, r)
 		} else {
 			h.ServeHTTP(w, r)
@@ -118,13 +126,13 @@ func wrapFSHandler(h http.Handler) http.HandlerFunc {
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	t, _ := template.New("index").Parse(indexTemplate)
 	//t.Execute(w, FromTo{baseURI + filePattern, baseURI + uploadPattern})
-	t.Execute(w, Head{FromTo{baseURI + filePattern, ""}, noqrcode, baseURI + qrPattern, baseURI + uploadPattern, "Index Page", 300})
+	t.Execute(w, Head{FromTo{baseURI + filePattern, ""}, noQRCode, baseURI + qrPattern, baseURI + uploadPattern, "Index Page", 300})
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		t, _ := template.New("up").Parse(uploadTemplate)
-		t.Execute(w, Head{FromTo{baseURI + filePattern, ""}, noqrcode, baseURI + qrPattern, baseURI + indexPattern, "Upload Files", 300})
+		t.Execute(w, Head{FromTo{baseURI + filePattern, ""}, noQRCode, baseURI + qrPattern, baseURI + indexPattern, "Upload Files", 300})
 	} else {
 		r.ParseMultipartForm(32 << 20)
 
@@ -185,7 +193,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		t, _ := template.New("result").Parse(upResultTemplate)
 		okFiles = strings.Replace(okFiles, ",", "", 1)
 		failedFiles = strings.Replace(failedFiles, ",", "", 1)
-		t.Execute(w, UpResult{Head{FromTo{"", baseURI + uploadPattern}, noqrcode, baseURI + qrPattern, baseURI + indexPattern, "Upload Result", 300}, okFiles, failedFiles, absPath})
+		t.Execute(w, UpResult{Head{FromTo{"", baseURI + uploadPattern}, noQRCode, baseURI + qrPattern, baseURI + indexPattern, "Upload Result", 300}, okFiles, failedFiles, absPath})
 	}
 }
 
