@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"html/template"
@@ -175,13 +176,14 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 				upFilePath := filepath.Join(upDirectory, fname)
 				f, err := os.OpenFile(upFilePath, os.O_WRONLY|os.O_CREATE, 0666)
+				bf := bufio.NewWriter(f)
 				if err != nil {
 					upStatCh <- upStat{fname, false}
 					log.Println(err)
 					return
 				}
 				defer f.Close()
-				io.Copy(f, file)
+				io.Copy(bf, file)
 				upStatCh <- upStat{fname, true}
 			}(i)
 		}
