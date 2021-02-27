@@ -8,11 +8,11 @@ import (
 var ips map[string]string
 
 func getIPs() map[string]string {
-	ips = make(map[string]string)
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		log.Fatal(err)
 	}
+	ips = make(map[string]string, len(ifaces))
 
 	for _, i := range ifaces {
 		addrs, err := i.Addrs()

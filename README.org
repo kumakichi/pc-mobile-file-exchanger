@@ -5,17 +5,8 @@
 
   Use your Mobile Device to scan this QR code, open the link in navigator, then you can choose *get files from PC* or *upload file to PC*
 
-  [[./scrots/index.png]]
+   [[./scrots/files.jpg]]
 
-** get files from PC
-   Choose *Get file from PC*
-   [[./scrots/files.png]]
-** upload file to PC
-   Choose *Upload file to PC*
-   [[./scrots/uploadSelect.png]]
-
-   Upload result
-   [[./scrots/result.png]]
 * How to use / Options
 
   Quite simple, just type

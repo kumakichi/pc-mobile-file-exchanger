@@ -2,68 +2,51 @@ package main
 
 const (
 	indexTemplate = customHead + `
-<!DOCTYPE html>
-<head>
-   <style>
-        .child {
-            float: left;
-            width: 100%;
-            height: 33%;
-        }
-      body {
-          text-align: center;
-          font-size:400%;
-          margin: auto;
-      }
-   </style>
-</head>
+ <body></body>
+</html>
 `
+	xxqrTemplate = customHead + `
+<body>
+<img style="display: block;margin-left: auto;margin-right: auto;" src="data:image/png;base64,{{.QrBase}}" alt="QRCode" title="scan this picture to visit"/>
+</body>`
+	//	`
+	//<body>
+	//<div>
+	//   <p>{{.QrBase}} was/were uploaded to</p>
+	//<img src="data:image/png;base64,{{.QrBase}}" alt="QRCode" title="scan this picture to visit"/>
+	//</div>
+	//</body>
+	//`
 
 	uploadTemplate = customHead + `
 <body>
    <form action='/upload' method='post' enctype="multipart/form-data">
-      <input id='uploadInput1' class='uniform-file' name='upfile1' type='file'/>
-      <input id='uploadInput2' class='uniform-file' name='upfile2' type='file'/>
-      <input id='uploadInput3' class='uniform-file' name='upfile3' type='file'/>
-      <input id='uploadInput4' class='uniform-file' name='upfile4' type='file'/>
-      <input id='uploadInput5' class='uniform-file' name='upfile5' type='file'/>
-      <br>
-      <br>
-      <br>
-      <br>
-      <input type="submit" value="upload" />
+<input id='uploadInput1' class='uniform-file' name='uploadFile' type='file' multiple/>
+      </br>
+      </br>
+      </br>
+      </br>
+      <input type="submit" value="upload file[s]" />
    </form>
 </body>`
 
 	upResultTemplate = customHead + `
 <body>
-   <p style="font-size: 200%;">{{.OkFiles}} was/were uploaded to {{.FilePath}}</p>
+   <p>{{.OkFiles}} was/were uploaded to {{.FilePath}}</p>
    {{ if (ne .FailedFiles "") }}
      <br>
      <br>
-     <p style="font-size: 200%;">{{.FailedFiles}} was/were failed to upload</p>
+     <p>{{.FailedFiles}} was/were failed to upload</p>
    {{ end }}
 </body>`
 
 	customHead = `
-<div class="container">
-{{ if (ne .ToPC "") }}
-  <a href="{{ .ToPC }}" class="child">Upload</a>
-{{ else }}
-  <a href="{{ .FromPC }}" class="child">Get Files</a>
-{{ end }}
+<div class="nav">
+  <li><a href="{{ .GetFiles }}" class="child">Get Files</a></li>
 
-{{ if (ne .NoQrcode true) }}
-  <a href="{{ .ToQrcode }}" class="child">QR Code</a>
-{{ else }}
-  <a href="#" class="child">QR Code</a>
-{{ end }}
+  <li><a href="{{ .ToQrcode }}" class="child">QR Code</a></li>
 
-{{ if (ne .Title "Index Page") }}
-  <a href="{{ .ToIndex }}" class="child">Index</a>
-{{ else }}
-  <a href="{{ .ToIndex }}" class="child">Upload</a>
-{{ end }}
+  <li><a href="{{ .UploadFiles }}" class="child">Upload</a></li>
 </div>
 
 <!DOCTYPE html>
@@ -71,24 +54,81 @@ const (
     <title>{{ .Title }}</title>
     <style>
         pre {
-            text-align: center;
+            text-align: left;
             font-size: {{ .FontSize }}%;
             margin: auto;
         }
-        .container {
-            overflow: hidden;
-            zoom: 1;
-            border: 1px solid red;
-        }
-        .child {
-            float: left;
-            width: 33%;
-            border: 1px solid greenyellow;
+
+        label {
             font-size: {{ .FontSize }}%;
         }
-        form{
+
+        .nav {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            background-color: silver;
+        }
+
+        .nav a {
+            text-decoration: none;
+            display: block;
+            padding: 16px;
+            color: white;
+
+      text-align:center;
+      border:1px solid #DADADA;
+      border-radius:5px;
+      cursor:pointer;
+      background: linear-gradient(to bottom,#F8F8F8,#27558e);
+
+        }
+
+        .nav a:hover {
+            background-color: lightskyblue;
+        }
+
+        @media (min-width:800px) {
+            .nav {
+                justify-content: flex-start;
+            }
+
+            li {
+                border-left: 1px solid silver;
+            }
+        }
+
+        @media (min-width:600px) and (max-width:800px) {
+            .nav li {
+                flex: 1;
+            }
+
+            li+li {
+                border-left: 1px solid silver;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .nav {
+                flex-flow: column wrap;
+            }
+
+            li+li {
+                border-top: 1px solid silver;
+            }
+        }
+
+
+        .child {
+            float: left;
+            font-size: {{ .FontSize }}%;
+        }
+
+        form {
             text-align: center;
         }
+
         input {
             font-size: {{ .FontSize }}%;
         }
