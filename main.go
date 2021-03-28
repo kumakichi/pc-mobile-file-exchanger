@@ -126,7 +126,7 @@ func main() {
 	baseURI = "http://" + host
 
 	http.Handle(qrPattern, authMiddleware(http.HandlerFunc(qrServePage)))
-	http.Handle(filePattern, authMiddleware(http.StripPrefix(filePattern, wrapFSHandler(FileServer(http.Dir(directory))))))
+	http.Handle(filePattern, authMiddleware(http.StripPrefix(filePattern, wrapFSHandler(http.FileServer(http.FS(suffixDirFS(directory)))))))
 	http.Handle(uploadPattern, authMiddleware(http.HandlerFunc(uploadHandler)))
 
 	log.Printf("Listen at %s\n", host)
