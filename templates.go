@@ -47,6 +47,8 @@ const (
   <li><a href="{{ .ToQrcode }}" class="child">QR Code</a></li>
 
   <li><a href="{{ .UploadFiles }}" class="child">Upload</a></li>
+
+  <li><a href="../" class="child">../</a></li>
 </div>
 
 <!DOCTYPE html>
