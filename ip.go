@@ -29,6 +29,7 @@ func getIPs() map[string]string {
 			}
 		}
 	}
+	ips["allDevices"] = "0.0.0.0"
 
 	return ips
 }
