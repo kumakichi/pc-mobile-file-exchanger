@@ -32,6 +32,8 @@ var (
 	authUser         string
 	authPwd          string
 	noAuth           bool
+	banTimeout       int
+	banCount         int
 )
 
 type GetOrUpload struct {
@@ -77,6 +79,8 @@ func init() {
 	flag.BoolVar(&noAuth, "na", false, "Do not auth")
 	flag.StringVar(&authUser, "au", "share", "auth user")
 	flag.StringVar(&authPwd, "ap", "share", "auth pwd")
+	flag.IntVar(&banTimeout, "bt", 3600, "auto ban timeout")
+	flag.IntVar(&banCount, "bc", 5, "max fail count before auto ban")
 }
 
 func qrServePage(w http.ResponseWriter, r *http.Request) {

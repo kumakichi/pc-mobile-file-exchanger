@@ -11,12 +11,72 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
+
+var (
+	autoBan map[string]banip
+)
+
+type banip struct {
+	count int
+	ts    int
+}
+
+func init() {
+	autoBan = make(map[string]banip, 10)
+}
 
 func askForAuth(w http.ResponseWriter) {
 	w.Header().Set("WWW-Authenticate", `Basic realm="Please Login"`)
 	w.Header().Set("Content-type", "text/html")
 	w.WriteHeader(http.StatusUnauthorized)
+}
+
+func procAutoban(m map[string]banip, r *http.Request) (needBan bool) {
+	var requestIP string
+	forwarded := r.Header.Get("X-FORWARDED-FOR")
+	if forwarded != "" {
+		requestIP = forwarded
+	}
+	requestIP = r.RemoteAddr
+	now := time.Now().Second()
+
+	v, ok := m[requestIP]
+	if ok && v.count > banCount && v.ts-now < banTimeout {
+		needBan = true
+		m[requestIP] = banip{
+			ts:    now,
+			count: v.count + 1,
+		}
+		log.Printf("=== autoBan:%s,count:%d ===\n", requestIP, m[requestIP].count)
+		return
+	}
+
+	if !ok {
+		m[requestIP] = banip{count: 1}
+	} else {
+		cnt := v.count
+		if v.ts-now > banTimeout {
+			cnt = 0
+		}
+		m[requestIP] = banip{
+			ts:    v.ts,
+			count: cnt + 1,
+		}
+	}
+
+	if m[requestIP].count > banCount {
+		v = m[requestIP]
+		m[requestIP] = banip{
+			count: v.count,
+			ts:    now,
+		}
+		log.Printf("=== autoBan add:%s ===\n", requestIP)
+		needBan = true
+	}
+
+	return
 }
 
 func authMiddleware(next http.Handler) http.Handler {
@@ -25,6 +85,10 @@ func authMiddleware(next http.Handler) http.Handler {
 	}
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
+		if auth != authStr && procAutoban(autoBan, r) {
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
 
 		switch auth {
 		case "": // no such header
