@@ -33,13 +33,14 @@ func askForAuth(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusUnauthorized)
 }
 
-func procAutoban(m map[string]banip, r *http.Request) (needBan bool) {
+func procAutoBan(m map[string]banip, r *http.Request) (needBan bool) {
 	var requestIP string
 	forwarded := r.Header.Get("X-FORWARDED-FOR")
 	if forwarded != "" {
 		requestIP = forwarded
+	} else {
+		requestIP = r.RemoteAddr
 	}
-	requestIP = r.RemoteAddr
 	now := time.Now().Second()
 
 	v, ok := m[requestIP]
@@ -85,20 +86,24 @@ func authMiddleware(next http.Handler) http.Handler {
 	}
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
-		if auth != authStr && procAutoban(autoBan, r) {
+		if auth != authStr && procAutoBan(autoBan, r) {
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
+		var err error
 		switch auth {
 		case "": // no such header
 			askForAuth(rw)
-			rw.Write([]byte("no auth header received"))
+			_, err = rw.Write([]byte("no auth header received"))
 		case authStr: // passed
 			next.ServeHTTP(rw, r)
 		default: // header existed but invalid
 			askForAuth(rw)
-			rw.Write([]byte("not authenticated"))
+			_, err = rw.Write([]byte("not authenticated"))
+		}
+		if err != nil {
+			log.Printf("error: %v", err)
 		}
 	})
 }
@@ -122,9 +127,15 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			Title:    "Upload Files",
 			FontSize: getFontSize(r),
 		}
-		t.Execute(w, data)
+		err := t.Execute(w, data)
+		if err != nil {
+			log.Printf("err: %v", err)
+		}
 	} else {
-		r.ParseMultipartForm(32 << 20)
+		err := r.ParseMultipartForm(32 << 20)
+		if err != nil {
+			log.Printf("err: %v", err)
+		}
 
 		type upStat struct {
 			name string
@@ -179,7 +190,10 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 				defer f.Close()
-				io.Copy(bf, file)
+				_, err = io.Copy(bf, file)
+				if err != nil {
+					log.Printf("err:%v", err)
+				}
 				upStatCh <- upStat{fname, true}
 			}(i)
 		}
@@ -206,7 +220,10 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			FilePath:    absPath,
 		}
 
-		t.Execute(w, data)
+		err = t.Execute(w, data)
+		if err != nil {
+			log.Printf("err: %v", err)
+		}
 	}
 }
 
@@ -224,7 +241,10 @@ func wrapFSHandler(h http.Handler) http.HandlerFunc {
 				Title:    "Get Files",
 				FontSize: getFontSize(r),
 			}
-			t.Execute(w, data)
+			err := t.Execute(w, data)
+			if err != nil {
+				log.Printf("err: %v", err)
+			}
 			h.ServeHTTP(w, r)
 		} else {
 			h.ServeHTTP(w, r)

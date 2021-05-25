@@ -17,23 +17,24 @@ import (
 )
 
 var (
-	port             int
-	help             bool
-	directory        string
-	upDirectory      string
-	timeout          int
-	noQRCode         bool
-	noDir            bool
-	baseURI          string
-	suffix           string
-	filenameContains string
-	qrBase64         string
-	authStr          string
-	authUser         string
-	authPwd          string
-	noAuth           bool
-	banTimeout       int
-	banCount         int
+	port              int
+	help              bool
+	directory         string
+	upDirectory       string
+	timeout           int
+	noQRCode          bool
+	noDir             bool
+	patchHtmlToParent bool
+	baseURI           string
+	filterSuffix      string
+	filenameContains  string
+	qrBase64          string
+	authStr           string
+	authUser          string
+	authPwd           string
+	noAuth            bool
+	banTimeout        int
+	banCount          int
 )
 
 type GetOrUpload struct {
@@ -64,6 +65,7 @@ const (
 	qrPattern     = "/qrcode"
 	filePattern   = "/file/"
 	uploadPattern = "/upload"
+	patchHtmlName = "pp"
 )
 
 func init() {
@@ -71,7 +73,7 @@ func init() {
 	flag.BoolVar(&help, "h", false, "Print this help infomation")
 	flag.StringVar(&directory, "d", ".", "File server root path")
 	flag.StringVar(&upDirectory, "u", ".", "Upload files root path")
-	flag.StringVar(&suffix, "s", "", "Suffix of filename, only matched file will be shown")
+	flag.StringVar(&filterSuffix, "s", "", "Suffix of filename, only matched file will be shown")
 	flag.StringVar(&filenameContains, "f", "", "Substring of filename, only matched file/dirs will be shown")
 	flag.IntVar(&timeout, "t", 5, "Select timeout in seconds, when you have more than 1 NIC, you need to select one, or we will use all the NICs")
 	flag.BoolVar(&noQRCode, "n", false, "Do not open browser automatically")
@@ -81,6 +83,7 @@ func init() {
 	flag.StringVar(&authPwd, "ap", "share", "auth pwd")
 	flag.IntVar(&banTimeout, "bt", 3600, "auto ban timeout")
 	flag.IntVar(&banCount, "bc", 5, "max fail count before auto ban")
+	flag.BoolVar(&patchHtmlToParent, patchHtmlName, false, "patch html, add link to parent")
 }
 
 func qrServePage(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +112,10 @@ func qrServePage(w http.ResponseWriter, r *http.Request) {
 			QrBase: qrBase64,
 		},
 	}
-	t.Execute(w, data)
+	err = t.Execute(w, data)
+	if err != nil {
+		log.Printf("err: %v", err)
+	}
 }
 
 func main() {
@@ -136,8 +142,11 @@ func main() {
 	log.Printf("Listen at %s\n", host)
 	log.Printf("Access files by http://%s\n", host+filePattern)
 
-	if noQRCode == false {
-		open.Run(baseURI + qrPattern)
+	if !noQRCode {
+		err := open.Run(baseURI + qrPattern)
+		if err != nil {
+			log.Printf("err: %v", err)
+		}
 	}
 	log.Fatal(http.ListenAndServe(host, nil))
 }
@@ -217,7 +226,7 @@ func isMobile(ua string) bool {
 		"googletv":      {},
 	}
 	for k := range mobileUAs {
-		if strings.Index(ua, k) != -1 {
+		if strings.Contains(ua, k) {
 			return true
 		}
 	}

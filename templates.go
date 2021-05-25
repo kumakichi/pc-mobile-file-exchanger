@@ -1,10 +1,6 @@
 package main
 
 const (
-	indexTemplate = customHead + `
- <body></body>
-</html>
-`
 	xxqrTemplate = customHead + `
 <body>
 <img style="display: block;margin-left: auto;margin-right: auto;" src="data:image/png;base64,{{.QrBase}}" alt="QRCode" title="scan this picture to visit"/>
