@@ -35,6 +35,8 @@ var (
 	noAuth            bool
 	banTimeout        int
 	banCount          int
+	serverKey         string
+	serverCrt         string
 )
 
 type GetOrUpload struct {
@@ -84,6 +86,8 @@ func init() {
 	flag.IntVar(&banTimeout, "bt", 3600, "auto ban timeout")
 	flag.IntVar(&banCount, "bc", 5, "max fail count before auto ban")
 	flag.BoolVar(&patchHtmlToParent, patchHtmlName, false, "patch html, add link to parent")
+	flag.StringVar(&serverKey, "sk", "", "tls: server key")
+	flag.StringVar(&serverCrt, "sc", "", "tls: server secret")
 }
 
 func qrServePage(w http.ResponseWriter, r *http.Request) {
@@ -148,7 +152,11 @@ func main() {
 			log.Printf("err: %v", err)
 		}
 	}
-	log.Fatal(http.ListenAndServe(host, nil))
+	if serverKey == "" || serverCrt == "" {
+		log.Fatal(http.ListenAndServe(host, nil))
+	} else {
+		log.Fatal(http.ListenAndServeTLS(host, serverCrt, serverKey, nil))
+	}
 }
 
 func selectInterface(ips map[string]string) string {
