@@ -43,7 +43,10 @@ type sizeFileInfo struct {
 }
 
 func (s sizeFileInfo) Size() int64 {
-	return s.FileInfo.Size() + int64(len(toParentPatch))
+	if filepath.Ext(s.Name()) == ".html" && flag.Lookup(patchHtmlName).Value.String() == "true" {
+		return s.FileInfo.Size() + int64(len(toParentPatch))
+	}
+	return s.FileInfo.Size()
 }
 
 func (f *suffixFile) Stat() (fs.FileInfo, error) {
