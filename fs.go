@@ -6,11 +6,16 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
 const (
-	toParentPatch = "<a style='top:0;left:0;position:fixed;z-index:9999;' href=window.location.href+/../>toParent/</a></br>"
+	toParentPatch = "<a style='top:0;left:0;position:fixed;z-index:9999;' href=window.location.href+/../>toParent/</a></br><a href=window.location.href+/../../>toParent2/</a></br>"
+)
+
+var (
+	htmlTagReg = regexp.MustCompile(`(<html[^>]*>)`)
 )
 
 type suffixDirFS string
@@ -55,16 +60,20 @@ func (f *suffixFile) Stat() (fs.FileInfo, error) {
 }
 
 func (f *suffixFile) Read(b []byte) (int, error) {
-
 	n, err := f.File.Read(b)
 	length := len(b)
 	if f.fileSuffix == ".html" && flag.Lookup(patchHtmlName).Value.String() == "true" {
-		tmp := bytes.Replace(b, []byte("<html>"), []byte("<html>"+toParentPatch), 1)[:length]
+		tmp := b
+		hTags := htmlTagReg.FindSubmatch(b)
+		if len(hTags) == 2 {
+			tmp = bytes.Replace(b, hTags[1], append(hTags[1], []byte(toParentPatch)...), 1)[:length]
+			f.File.Seek(int64(-len(toParentPatch)), os.SEEK_CUR)
+
+		}
 		tmp = bytes.Replace(tmp, []byte("<base href="), []byte("<bbse href="), 1) // ignore base href
 		for i := 0; i < length; i++ {
 			b[i] = tmp[i]
 		}
-		n = len(b)
 	}
 
 	return n, err
