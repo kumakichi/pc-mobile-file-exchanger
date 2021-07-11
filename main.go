@@ -17,6 +17,7 @@ import (
 )
 
 var (
+	Version           string = "unknown"
 	port              int
 	help              bool
 	directory         string
@@ -125,7 +126,8 @@ func qrServePage(w http.ResponseWriter, r *http.Request) {
 func main() {
 	flag.Parse()
 	if help {
-		fmt.Printf("Usage: %s [options]\n\n", os.Args[0])
+		fmt.Printf("Usage: %s [options]\n", os.Args[0])
+		fmt.Printf("%s\n\n", Version)
 		flag.PrintDefaults()
 		return
 	}
