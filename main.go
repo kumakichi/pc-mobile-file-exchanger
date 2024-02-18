@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"sort"
@@ -38,11 +39,13 @@ var (
 	banCount          int
 	serverKey         string
 	serverCrt         string
+	clipboardData     map[string]string
 )
 
 type GetOrUpload struct {
 	GetFiles    string
 	UploadFiles string
+	Clipboard       string
 }
 
 type QrPage struct {
@@ -68,6 +71,7 @@ const (
 	qrPattern     = "/qrcode"
 	filePattern   = "/file/"
 	uploadPattern = "/upload"
+	clipboardPattern  = "/clipboard"
 	patchHtmlName = "pp"
 )
 
@@ -89,6 +93,9 @@ func init() {
 	flag.BoolVar(&patchHtmlToParent, patchHtmlName, false, "patch html, add link to parent")
 	flag.StringVar(&serverKey, "sk", "", "tls: server key")
 	flag.StringVar(&serverCrt, "sc", "", "tls: server secret")
+
+	clipboardData = make(map[string]string)
+	rand.Seed(time.Now().UnixNano())
 }
 
 func qrServePage(w http.ResponseWriter, r *http.Request) {
@@ -109,6 +116,7 @@ func qrServePage(w http.ResponseWriter, r *http.Request) {
 		GetOrUpload: GetOrUpload{
 			GetFiles:    filePattern,
 			UploadFiles: uploadPattern,
+			Clipboard:       clipboardPattern,
 		},
 		ToQrcode: qrPattern,
 		Title:    "Index Page",
@@ -144,6 +152,10 @@ func main() {
 	http.Handle(qrPattern, authMiddleware(http.HandlerFunc(qrServePage)))
 	http.Handle(filePattern, authMiddleware(http.StripPrefix(filePattern, wrapFSHandler(http.FileServer(http.FS(suffixDirFS(directory)))))))
 	http.Handle(uploadPattern, authMiddleware(http.HandlerFunc(uploadHandler)))
+
+	http.Handle(clipboardPattern, authMiddleware(http.HandlerFunc(clipboardIndexHandler)))
+	http.Handle(clipboardPattern+"/generate", authMiddleware(http.HandlerFunc(generateCodeHandler)))
+	http.Handle(clipboardPattern+"/retrieve", authMiddleware(http.HandlerFunc(retrieveHandler)))
 
 	log.Printf("Listen at %s\n", host)
 	log.Printf("Access files by http://%s\n", host+filePattern)
@@ -242,4 +254,203 @@ func isMobile(ua string) bool {
 	}
 
 	return false
+}
+
+func clipboardIndexHandler(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.New("clipboard").Parse(`
+<div class="nav">
+  <li><a href="{{ .GetFiles }}" class="child">Get Files</a></li>
+
+  <li><a href="{{ .ToQrcode }}" class="child">QR Code</a></li>
+
+  <li><a href="{{ .UploadFiles }}" class="child">Upload</a></li>
+
+  <li><a href="{{ .Clipboard }}" class="child">Clipboard</a></li>
+
+  <li><a href="../" class="child">../</a></li>
+</div>
+	<!DOCTYPE html>
+	<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Online Clipboard</title>
+		<style>
+			body {
+				font-family: 'Arial', sans-serif;
+				text-align: center;
+				margin: 20px;
+			}
+			h1 {
+				color: #333;
+			}
+			form {
+				margin-top: 20px;
+			}
+			label {
+				display: block;
+				margin-bottom: 5px;
+				color: #666;
+			}
+			textarea {
+				width: 90%;
+				padding: 10px;
+				box-sizing: border-box;
+			}
+			.code-input {
+    padding: 2px 2px;
+    border-radius: 3px;
+    box-shadow: 0px 2px 6px rgba(19, 18, 66, 0.07);
+    border-width: 2px;
+				width: 30%;
+			}
+			button {
+				padding: 10px;
+				background-color: #4CAF50;
+				color: white;
+				border: none;
+				border-radius: 4px;
+				cursor: pointer;
+			}
+
+		.copypaste {
+		    border-radius: 13px;
+		    padding: 15px;
+		    padding-bottom: 32px;
+		    border: solid 2px #f9cd25;
+		    width: 90%!important;
+		}
+
+    #content {
+        display: inline-block;
+        width: 74%; /* 90% - 16% = 74% */
+        height: 60%;
+        box-sizing: border-box;
+    }
+
+    #generateButton {
+        display: inline-block;
+        width: 24%; /* 90% - 16% = 74% + 2% margin */
+        margin-left: 2%; /* 2% margin */
+    }
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.row-2 {
+    flex: 0 0 auto;
+    width: 20%;
+}
+
+.button-container {
+    margin-top: 10px;
+    flex: 0 0 auto;
+    width: 80%;
+    margin-left: auto; /* 将 button-container 靠右对齐 */
+}
+
+		</style>
+		<script>
+			function generateCode() {
+			    const host = window.location.hostname;
+			    const port = window.location.port;
+				const content = document.getElementById("content").value;
+
+				fetch(`+"`"+"http://${host}:${port}/clipboard/generate"+"`"+`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/x-www-form-urlencoded",
+					},
+					body: "content=" + encodeURIComponent(content),
+				})
+					.then(response => response.text())
+					.then(code => {
+						document.getElementById("code").value = code;
+					})
+					.catch(error => console.error('Error generating code:', error));
+			}
+
+			function retrieveContent() {
+			    const host = window.location.hostname;
+			    const port = window.location.port;
+				const code = document.getElementById("code").value;
+				fetch(`+"`"+"http://${host}:${port}/clipboard/retrieve?code="+"`"+` + code)
+					.then(response => response.text())
+					.then(content => {
+						document.getElementById("content").value = content;
+					})
+					.catch(error => console.error('Error retrieving content:', error));
+			}
+		</script>
+	</head>
+	<body>
+		<h1>Online Clipboard</h1>
+    <form action="/clipboard/generate" method="post" id="clipboardForm">
+            <textarea id="content" name="content" class="copypaste" placeholder="Text Goes here"></textarea>
+        <div class="row">
+        <div class="row-2"></div>
+        <div class="button-container">
+            <button type="button" id="generateButton" onclick="generateCode()">Share</button>
+			<input type="text" id="code" name="code" class="code-input" required>
+			<button type="button" onclick="retrieveContent()">Retrieve</button>
+        </div>
+        </div>
+    </form>
+
+
+	</body>
+	</html>
+	`)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+		data := Head{
+			GetOrUpload: GetOrUpload{
+				GetFiles:    filePattern,
+				UploadFiles: uploadPattern,
+Clipboard: clipboardPattern,
+			},
+			ToQrcode: qrPattern,
+			Title:    "Online Clipboard",
+			FontSize: getFontSize(r),
+		}
+	tmpl.Execute(w, data)
+}
+
+func generateCodeHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	content := r.Form.Get("content")
+	if content == "" {
+		http.Error(w, "Content cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	code := generateUniqueCode()
+	clipboardData[code] = content
+
+	w.Write([]byte(code))
+}
+
+func retrieveHandler(w http.ResponseWriter, r *http.Request) {
+	code := r.FormValue("code")
+	content, ok := clipboardData[code]
+	if !ok {
+		http.Error(w, "Invalid code", http.StatusNotFound)
+		return
+	}
+
+	w.Write([]byte(content))
+}
+
+func generateUniqueCode() string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	codeLength := 6
+	b := make([]byte, codeLength)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
 }

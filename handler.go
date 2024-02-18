@@ -122,6 +122,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			GetOrUpload: GetOrUpload{
 				GetFiles:    filePattern,
 				UploadFiles: uploadPattern,
+Clipboard: clipboardPattern,
 			},
 			ToQrcode: qrPattern,
 			Title:    "Upload Files",
@@ -209,7 +210,9 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		data := UpResult{
 			Head: Head{
 				GetOrUpload: GetOrUpload{
+				GetFiles:    filePattern,
 					UploadFiles: uploadPattern,
+Clipboard: clipboardPattern,
 				},
 				ToQrcode: qrPattern,
 				Title:    "Upload Result",
@@ -236,6 +239,7 @@ func wrapFSHandler(h http.Handler) http.HandlerFunc {
 				GetOrUpload: GetOrUpload{
 					GetFiles:    filePattern,
 					UploadFiles: uploadPattern,
+Clipboard: clipboardPattern,
 				},
 				ToQrcode: qrPattern,
 				Title:    "Get Files",

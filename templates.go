@@ -44,6 +44,8 @@ const (
 
   <li><a href="{{ .UploadFiles }}" class="child">Upload</a></li>
 
+  <li><a href="{{ .Clipboard }}" class="child">Clip</a></li>
+
   <li><a href="../" class="child">../</a></li>
 </div>
 
