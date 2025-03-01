@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Title }}</title>
+    <link rel="stylesheet" href="/static/css/font-awesome_5.15.4_all.min.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    {{block "head" .}}{{end}}
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <ul>
+                <li><a href="{{ .GetFiles }}"><i class="fas fa-download"></i><span class="nav-text">Get Files</span></a></li>
+                <li><a href="{{ .ToQrcode }}"><i class="fas fa-qrcode"></i><span class="nav-text">QR Code</span></a></li>
+                <li><a href="{{ .UploadFiles }}"><i class="fas fa-upload"></i><span class="nav-text">Upload</span></a></li>
+                <li><a href="{{ .Clipboard }}"><i class="fas fa-clipboard"></i><span class="nav-text">Clip</span></a></li>
+                <li><a href="../"><i class="fas fa-level-up-alt"></i><span class="nav-text">../</span></a></li>
+            </ul>
+        </div>
+        {{block "content" .}}{{end}}
+    </div>
+    {{block "scripts" .}}{{end}}
+</body>
+</html>

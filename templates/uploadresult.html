@@ -1,0 +1,15 @@
+{{define "content"}}
+<div class="result-container">
+    <div class="success-message">
+        <i class="fas fa-check-circle"></i>
+        <p>{{.OkFiles}} was/were uploaded to {{.FilePath}}</p>
+    </div>
+    {{ if (ne .FailedFiles "") }}
+    <div class="error-message">
+        <i class="fas fa-exclamation-circle"></i>
+        <p>{{.FailedFiles}} was/were failed to upload</p>
+    </div>
+    {{ end }}
+    <a href="{{ .UploadFiles }}" class="btn-primary">Upload More Files</a>
+</div>
+{{end}}

@@ -1,0 +1,614 @@
+:root {
+    --primary-color: #2196F3;
+    --secondary-color: #1976D2;
+    --background-color: #f5f5f5;
+    --text-color: #333;
+    --border-radius: 8px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    line-height: 1.6;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.nav {
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    padding: 0 20px;
+}
+
+.nav ul {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0;
+    padding: 10px 0;
+}
+
+.nav a {
+    text-decoration: none;
+    color: var(--text-color);
+    padding: 10px 20px;
+    border-radius: var(--border-radius);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav a:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.nav i {
+    font-size: 1.2em;
+}
+
+.nav .nav-text {
+    font-size: 1em;
+    margin-left: 8px;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 1em;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary:hover {
+    background-color: var(--secondary-color);
+}
+
+.file-upload {
+    border: 2px dashed #ccc;
+    border-radius: var(--border-radius);
+    padding: 40px;
+    text-align: center;
+    background-color: white;
+    transition: all 0.3s ease;
+    margin: 20px 0;
+}
+
+.file-upload:hover {
+    border-color: var(--primary-color);
+}
+
+.file-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.file-label i {
+    font-size: 3em;
+    color: var(--primary-color);
+}
+
+.file-input {
+    display: none;
+}
+
+.file-list {
+    margin: 20px 0;
+}
+
+.file-item {
+    background-color: white;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: var(--border-radius);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.qr-container {
+    background-color: white;
+    padding: 40px;
+    border-radius: var(--border-radius);
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin: 20px 0;
+}
+
+.qr-code {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+.upload-container, .result-container {
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin: 20px 0;
+}
+
+.success-message, .error-message {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border-radius: var(--border-radius);
+    margin-bottom: 16px;
+}
+
+.success-message {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.error-message {
+    background-color: #ffebee;
+    color: #c62828;
+}
+
+/* Clipboard styles */
+.clipboard-container {
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-top: 2rem;
+}
+
+.clipboard-container h1 {
+    color: var(--text-color);
+    margin-bottom: 2rem;
+    font-size: 2rem;
+    text-align: center;
+}
+
+.clipboard-form {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.textarea-container {
+    margin-bottom: 1.5rem;
+}
+
+.content-area {
+    width: 100%;
+    min-height: 200px;
+    padding: 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: var(--border-radius);
+    font-family: inherit;
+    font-size: 1rem;
+    line-height: 1.5;
+    resize: vertical;
+    transition: border-color 0.3s ease;
+}
+
+.content-area:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.code-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-icon i {
+    position: absolute;
+    left: 1rem;
+    color: #666;
+}
+
+.code-input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 2px solid #e0e0e0;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.code-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.button-group {
+    display: flex;
+    gap: 1rem;
+}
+
+/* 文件浏览器样式 */
+.files-container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.file-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.search-container {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+}
+
+#fileSearch {
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-right: 0.5rem;
+    max-width: 200px;
+    flex-grow: 1;
+}
+
+#clearBtn {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+}
+
+#clearBtn:hover {
+    background-color: #d32f2f;
+}
+
+.enhanced-file-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    padding: 0.5rem 0;
+}
+
+.file-item {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.file-item:hover {
+    background-color: #f0f0f0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.file-link {
+    display: block;
+    color: #333;
+    text-decoration: none;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-link:hover {
+    color: #4CAF50;
+}
+
+.file-link i {
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+}
+
+.file-tooltip {
+    visibility: hidden;
+    width: auto;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    text-align: center;
+    border-radius: 4px;
+    padding: 5px 10px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    white-space: normal;
+    word-break: break-all;
+    max-width: 200px;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.file-item:hover .file-tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* 桌面端显示文件条目的悬停效果 */
+@media (min-width: 769px) {
+    .file-link-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    /* 在桌面端隐藏展开/收缩按钮 */
+    .toggle-expand {
+        display: none;
+    }
+}
+
+/* 长文件名多行显示（用于移动设备） */
+@media (max-width: 768px) {
+    .file-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .search-container {
+        margin-left: 0;
+        margin-top: 0.5rem;
+        width: 100%;
+    }
+    
+    #fileSearch {
+        flex-grow: 1;
+        max-width: none;
+    }
+    
+    .enhanced-file-list {
+        grid-template-columns: 1fr; /* 手机上使用单列布局 */
+        gap: 0.8rem;
+    }
+
+    .file-item {
+        padding: 0.7rem;
+        position: relative;
+        padding-bottom: 2rem; /* 为展开按钮留出空间 */
+    }
+    
+    /* 手机上更改文件链接的显示方式，使用两行显示 */
+    .file-link {
+        display: flex;
+        align-items: flex-start; /* 靠上对齐，允许文件名换行 */
+    }
+    
+    .file-link i {
+        margin-top: 0.2rem; /* 图标稍微向下调整 */
+        flex-shrink: 0;
+    }
+    
+    .file-link-text {
+        white-space: normal; /* 允许文本换行 */
+        word-break: break-word; /* 长单词也会换行 */
+        line-height: 1.4; /* 行高稍大，提高可读性 */
+        flex: 1;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2; /* 默认显示两行 */
+        -webkit-box-orient: vertical;
+        position: relative;
+    }
+    
+    /* 展开后的文件名 */
+    .file-link-text.expanded {
+        -webkit-line-clamp: unset; /* 取消行数限制 */
+    }
+    
+    /* 展开/收缩按钮样式 */
+    .toggle-expand {
+        display: inline-block; /* 总是显示展开/收缩按钮 */
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        padding: 4px 8px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        z-index: 5;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    
+    .toggle-expand:hover, .toggle-expand:focus {
+        background-color: #3d8b3d;
+    }
+    
+    /* 隐藏气泡提示，因为我们已经显示完整文件名 */
+    .file-tooltip {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .file-item {
+        padding: 0.8rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    .file-link-text {
+        font-size: 0.95rem; /* 小屏幕上稍微缩小字体 */
+    }
+    
+    .nav {
+        padding: 0 10px;
+    }
+    
+    .nav ul {
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 5px 0;
+        gap: 2px;
+    }
+
+    .nav a {
+        padding: 6px 10px;
+        font-size: 0.85em;
+        justify-content: center;
+        width: auto;
+    }
+    
+    .file-upload {
+        padding: 20px;
+    }
+
+    .container {
+        padding: 10px;
+        margin-top: 5px;
+    }
+    
+    /* Clipboard specific */
+    .clipboard-container {
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+
+    .controls {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .code-group, .button-group {
+        width: 100%;
+    }
+
+    .button-group {
+        justify-content: stretch;
+    }
+
+    .btn-primary {
+        flex: 1;
+    }
+
+    .files-container {
+        padding: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .enhanced-file-list {
+        grid-template-columns: 1fr;
+    }
+    
+    .nav {
+        padding: 0 5px;
+    }
+    
+    .nav ul {
+        display: flex;
+        overflow-x: auto;
+        white-space: nowrap;
+        scrollbar-width: none; /* For Firefox */
+        -ms-overflow-style: none; /* For IE and Edge */
+        padding: 3px 0;
+        gap: 1px;
+    }
+    
+    .nav ul::-webkit-scrollbar {
+        display: none; /* For Chrome, Safari, and Opera */
+    }
+    
+    .nav li {
+        flex: 0 0 auto;
+    }
+    
+    .nav a {
+        padding: 4px 8px;
+        font-size: 0.8em;
+        min-width: auto;
+    }
+    
+    .nav i {
+        font-size: 1.2em;
+        margin: 0;
+    }
+    
+    .nav a span, .nav .nav-text {
+        display: none;
+    }
+    
+    .container {
+        padding: 8px;
+        margin-top: 3px;
+    }
+    
+    /* Clipboard specific */
+    .clipboard-container {
+        padding: 0.8rem;
+        margin-top: 0.5rem;
+    }
+    
+    .clipboard-container h1 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .content-area {
+        min-height: 150px;
+        padding: 0.75rem;
+    }
+    
+    .button-group {
+        gap: 0.5rem;
+    }
+    
+    .btn-primary {
+        padding: 8px 16px;
+        font-size: 0.9em;
+    }
+}

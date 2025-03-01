@@ -1,0 +1,112 @@
+{{define "content"}}
+<div class="clipboard-container">
+    <h1>Online Clipboard</h1>
+    <div class="clipboard-form">
+        <div class="textarea-container">
+            <textarea id="content" name="content" class="content-area" placeholder="Enter your text here..."></textarea>
+        </div>
+        <div class="controls">
+            <div class="code-group">
+                <div class="input-with-icon">
+                    <i class="fas fa-key"></i>
+                    <input type="text" id="code" name="code" class="code-input" placeholder="Enter code" required>
+                </div>
+            </div>
+            <div class="button-group">
+                <button type="button" class="btn-primary" onclick="generateCode()">
+                    <i class="fas fa-share-alt"></i> Share
+                </button>
+                <button type="button" class="btn-primary" onclick="retrieveContent()">
+                    <i class="fas fa-download"></i> Retrieve
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
+
+{{define "scripts"}}
+<script>
+    function generateCode() {
+        const host = window.location.hostname;
+        const port = window.location.port;
+        const content = document.getElementById("content").value;
+        
+        if (!content.trim()) {
+            alert("Please enter some text before sharing");
+            return;
+        }
+
+        const button = document.querySelector('button[onclick="generateCode()"]');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sharing...';
+        button.disabled = true;
+
+        fetch(`http://${host}:${port}/clipboard/generate`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: "content=" + encodeURIComponent(content),
+        })
+        .then(response => response.text())
+        .then(code => {
+            document.getElementById("code").value = code;
+            button.innerHTML = '<i class="fas fa-check"></i> Shared!';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }, 2000);
+        })
+        .catch(error => {
+            console.error('Error generating code:', error);
+            button.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }, 2000);
+        });
+    }
+
+    function retrieveContent() {
+        const host = window.location.hostname;
+        const port = window.location.port;
+        const code = document.getElementById("code").value;
+        
+        if (!code.trim()) {
+            alert("Please enter a code to retrieve content");
+            return;
+        }
+
+        const button = document.querySelector('button[onclick="retrieveContent()"]');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Retrieving...';
+        button.disabled = true;
+
+        fetch(`http://${host}:${port}/clipboard/retrieve?code=${encodeURIComponent(code)}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Invalid code or content not found");
+            }
+            return response.text();
+        })
+        .then(content => {
+            document.getElementById("content").value = content;
+            button.innerHTML = '<i class="fas fa-check"></i> Retrieved!';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }, 2000);
+        })
+        .catch(error => {
+            console.error('Error retrieving content:', error);
+            button.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error';
+            alert(error.message || "Failed to retrieve content");
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }, 2000);
+        });
+    }
+</script>
+{{end}}

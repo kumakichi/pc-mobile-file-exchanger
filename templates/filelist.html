@@ -1,0 +1,120 @@
+{{define "content"}}
+<div class="files-container">
+    <div class="file-header">
+        <h2>File Browser</h2>
+        <div class="search-container">
+            <input type="text" id="fileSearch" placeholder="Search files...">
+            <button id="clearBtn"><i class="fas fa-times"></i></button>
+        </div>
+    </div>
+    <div class="files-wrapper file-list">
+        {{.FileContent}}
+    </div>
+</div>
+{{end}}
+
+{{define "scripts"}}
+<script>
+    // Enhance file listing appearance
+    document.addEventListener('DOMContentLoaded', function() {
+        // Format the file listing to add icons and styling
+        const fileList = document.querySelector('.file-list');
+        
+        if (fileList) {
+            // Check if there's a pre element (standard directory listing)
+            const preElement = fileList.querySelector('pre');
+            
+            if (preElement) {
+                // Extract links from pre element
+                const links = preElement.querySelectorAll('a');
+                const fileListDiv = document.createElement('div');
+                fileListDiv.className = 'enhanced-file-list';
+                
+                links.forEach(link => {
+                    const originalHref = link.getAttribute('href');
+                    const fileName = link.textContent.trim();
+                    const isDirectory = originalHref.endsWith('/');
+                    
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    
+                    // 添加工具提示元素（桌面端悬停显示）
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'file-tooltip';
+                    tooltip.textContent = fileName;
+                    fileItem.appendChild(tooltip);
+                    
+                    const fileLink = document.createElement('a');
+                    fileLink.href = originalHref;
+                    fileLink.className = 'file-link';
+                    
+                    if (isDirectory) {
+                        fileLink.innerHTML = `<i class="fas fa-folder"></i> <span class="file-link-text">${fileName}</span>`;
+                    } else {
+                        fileLink.innerHTML = `<i class="fas fa-file"></i> <span class="file-link-text">${fileName}</span>`;
+                    }
+                    
+                    // 对于移动设备，总是添加展开/收缩按钮
+                    // 只在移动设备上显示，由CSS控制
+                    const toggleBtn = document.createElement('button');
+                    toggleBtn.className = 'toggle-expand';
+                    toggleBtn.textContent = '+';
+                    toggleBtn.setAttribute('aria-label', '展开文件名');
+                    
+                    // 设置展开/收缩切换功能
+                    const textSpan = fileLink.querySelector('.file-link-text');
+                    toggleBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const isExpanded = textSpan.classList.toggle('expanded');
+                        toggleBtn.textContent = isExpanded ? '-' : '+';
+                        toggleBtn.setAttribute('aria-label', isExpanded ? 'Shrink' : 'Expand');
+                    });
+                    
+                    fileItem.appendChild(toggleBtn);
+                    fileItem.appendChild(fileLink);
+                    fileListDiv.appendChild(fileItem);
+                });
+                
+                // Replace pre element with enhanced list
+                preElement.parentNode.replaceChild(fileListDiv, preElement);
+            }
+        }
+
+        // 搜索功能实现
+        const searchInput = document.getElementById('fileSearch');
+        const clearBtn = document.getElementById('clearBtn');
+        
+        // 搜索函数
+        function searchFiles() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const fileItems = document.querySelectorAll('.file-item');
+            
+            fileItems.forEach(item => {
+                const fileName = item.textContent.toLowerCase();
+                if (searchTerm === '' || fileName.includes(searchTerm)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+        
+        // 清空搜索
+        function clearSearch() {
+            searchInput.value = '';
+            searchFiles();
+            searchInput.focus();
+        }
+        
+        // 事件监听
+        if (clearBtn) clearBtn.addEventListener('click', clearSearch);
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function(e) {
+                searchFiles();
+            });
+        }
+    });
+</script>
+{{end}}

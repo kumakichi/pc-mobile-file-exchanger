@@ -1,18 +1,18 @@
-package main
+package utils
 
 import (
 	"log"
 	"net"
+	"sort"
 )
 
-var ips map[string]string
-
-func getIPs() map[string]string {
+// GetIPs retrieves all IP addresses from network interfaces
+func GetIPs() map[string]string {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		log.Fatal(err)
 	}
-	ips = make(map[string]string, len(ifaces))
+	ips := make(map[string]string, len(ifaces))
 
 	for _, i := range ifaces {
 		addrs, err := i.Addrs()
@@ -29,7 +29,16 @@ func getIPs() map[string]string {
 			}
 		}
 	}
-	ips["allDevices"] = "0.0.0.0"
 
 	return ips
+}
+
+// Keys returns the keys of a map as a sorted slice
+func Keys(m map[string]string) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }

@@ -1,0 +1,30 @@
+{{define "content"}}
+<div class="upload-container">
+    <form action='/upload' method='post' enctype="multipart/form-data">
+        <div class="file-upload">
+            <label for="uploadInput1" class="file-label">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span>Choose files or drag here</span>
+            </label>
+            <input id='uploadInput1' class='file-input' name='uploadFile' type='file' multiple/>
+        </div>
+        <div id="fileList" class="file-list"></div>
+        <button type="submit" class="btn-primary">Upload Files</button>
+    </form>
+</div>
+{{end}}
+
+{{define "scripts"}}
+<script>
+document.getElementById('uploadInput1').addEventListener('change', function(e) {
+    const fileList = document.getElementById('fileList');
+    fileList.innerHTML = '';
+    for(let file of this.files) {
+        const item = document.createElement('div');
+        item.className = 'file-item';
+        item.innerHTML = '<i class="fas fa-file"></i> ' + file.name;
+        fileList.appendChild(item);
+    }
+});
+</script>
+{{end}}

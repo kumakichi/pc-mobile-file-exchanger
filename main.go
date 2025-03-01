@@ -1,164 +1,166 @@
 package main
 
 import (
-	"encoding/base64"
+	"embed"
 	"flag"
 	"fmt"
-	"html/template"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
-	"sort"
-	"strings"
 	"time"
 
-	"github.com/skip2/go-qrcode"
+	"github.com/kumakichi/pc-mobile-file-exchanger/internal/auth"
+	fsInternal "github.com/kumakichi/pc-mobile-file-exchanger/internal/fs"
+	"github.com/kumakichi/pc-mobile-file-exchanger/internal/handlers"
+	"github.com/kumakichi/pc-mobile-file-exchanger/internal/utils"
 	"github.com/skratchdot/open-golang/open"
 )
 
-var (
-	Version           string = "unknown"
-	port              int
-	help              bool
-	directory         string
-	upDirectory       string
-	timeout           int
-	noQRCode          bool
-	noDir             bool
-	patchHtmlToParent bool
-	baseURI           string
-	filterSuffix      string
-	filenameContains  string
-	qrBase64          string
-	authStr           string
-	authUser          string
-	authPwd           string
-	noAuth            bool
-	banTimeout        int
-	banCount          int
-	serverKey         string
-	serverCrt         string
-	clipboardData     map[string]string
-)
+//go:embed static/webfonts/fa-solid-900.woff2
+var webfont []byte
 
-type GetOrUpload struct {
-	GetFiles    string
-	UploadFiles string
-	Clipboard       string
-}
+//go:embed static/css/font-awesome_5.15.4_all.min.css
+var stylesCSS2 []byte
 
-type QrPage struct {
-	QrBase string
-}
+//go:embed static/css/styles.css
+var stylesCSS []byte
 
-type Head struct {
-	GetOrUpload
-	ToQrcode string
-	Title    string
-	FontSize int
-	QrPage
-}
-
-type UpResult struct {
-	Head
-	OkFiles     string
-	FailedFiles string
-	FilePath    string
-}
+//go:embed templates/*.html
+var templateFs embed.FS
 
 const (
-	qrPattern     = "/qrcode"
-	filePattern   = "/file/"
-	uploadPattern = "/upload"
-	clipboardPattern  = "/clipboard"
-	patchHtmlName = "pp"
+	qrPattern        = "/qrcode"
+	filePattern      = "/file/"
+	uploadPattern    = "/upload"
+	clipboardPattern = "/clipboard"
+)
+
+var (
+	Version           = "unknown"
+	directory         string
+	upDirectory       string
+	port              int
+	help              bool
+	noAuth            bool
+	noQRCode          bool
+	patchHTMLToParent bool
+	baseURI           string
+	filterSuffix      string
+	authUser          string
+	authPwd           string
+	banTimeoutVar     int
+	banCountVar       int
+	serverKey         string
+	serverCrt         string
+	netInterfaceIndex int
 )
 
 func init() {
-	flag.IntVar(&port, "p", 8000, "Listen port")
-	flag.BoolVar(&help, "h", false, "Print this help infomation")
-	flag.StringVar(&directory, "d", ".", "File server root path")
-	flag.StringVar(&upDirectory, "u", ".", "Upload files root path")
-	flag.StringVar(&filterSuffix, "s", "", "Suffix of filename, only matched file will be shown")
-	flag.StringVar(&filenameContains, "f", "", "Substring of filename, only matched file/dirs will be shown")
-	flag.IntVar(&timeout, "t", 5, "Select timeout in seconds, when you have more than 1 NIC, you need to select one, or we will use all the NICs")
-	flag.BoolVar(&noQRCode, "n", false, "Do not open browser automatically")
-	flag.BoolVar(&noDir, "nd", false, "Do not show directory, serve only files")
-	flag.BoolVar(&noAuth, "na", false, "Do not auth")
-	flag.StringVar(&authUser, "au", "share", "auth user")
-	flag.StringVar(&authPwd, "ap", "share", "auth pwd")
-	flag.IntVar(&banTimeout, "bt", 3600, "auto ban timeout")
-	flag.IntVar(&banCount, "bc", 5, "max fail count before auto ban")
-	flag.BoolVar(&patchHtmlToParent, patchHtmlName, false, "patch html, add link to parent")
-	flag.StringVar(&serverKey, "sk", "", "tls: server key")
-	flag.StringVar(&serverCrt, "sc", "", "tls: server secret")
-
-	clipboardData = make(map[string]string)
-	rand.Seed(time.Now().UnixNano())
-}
-
-func qrServePage(w http.ResponseWriter, r *http.Request) {
-	if qrBase64 == "" {
-		b, err := qrcode.Encode(baseURI+filePattern, qrcode.Highest, 256)
-		if err != nil {
-			log.Fatal(err)
-		}
-		qrBase64 = base64.StdEncoding.EncodeToString(b)
-	}
-
-	t, err := template.New("qrcode").Parse(xxqrTemplate)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	data := Head{
-		GetOrUpload: GetOrUpload{
-			GetFiles:    filePattern,
-			UploadFiles: uploadPattern,
-			Clipboard:       clipboardPattern,
-		},
-		ToQrcode: qrPattern,
-		Title:    "Index Page",
-		FontSize: getFontSize(r),
-		QrPage: QrPage{
-			QrBase: qrBase64,
-		},
-	}
-	err = t.Execute(w, data)
-	if err != nil {
-		log.Printf("err: %v", err)
-	}
+	flag.IntVar(&port, "port", 8000, "the listening port")
+	flag.BoolVar(&help, "h", false, "show this help message")
+	flag.StringVar(&directory, "d", "./", "directory for sharing")
+	flag.StringVar(&upDirectory, "ud", "./", "directory for uploading files")
+	flag.BoolVar(&noAuth, "na", false, "no authentication")
+	flag.BoolVar(&noQRCode, "nq", false, "no QRCode page")
+	flag.BoolVar(&patchHTMLToParent, "pp", false, "patch html file with parent links")
+	flag.StringVar(&filterSuffix, "fs", "", "filter by suffix, empty means do not filter")
+	flag.StringVar(&authUser, "au", "admin", "username for basic auth")
+	flag.StringVar(&authPwd, "ap", "admin", "password for basic auth")
+	flag.IntVar(&banTimeoutVar, "banTimeout", 300, "timeout for auto ban")
+	flag.IntVar(&banCountVar, "banCount", 3, "count for auto ban")
+	flag.StringVar(&serverKey, "key", "", "server key")
+	flag.StringVar(&serverCrt, "crt", "", "server cert")
+	flag.IntVar(&netInterfaceIndex, "nic", -1, "network interface index, use -1 to choose interactively")
 }
 
 func main() {
 	flag.Parse()
 	if help {
 		fmt.Printf("Usage: %s [options]\n", os.Args[0])
-		fmt.Printf("%s\n\n", Version)
+		fmt.Printf("Version: %s\n\n", Version)
 		flag.PrintDefaults()
 		return
 	}
 
+	var authString string
 	if !noAuth {
-		authStr = calcAuthStr(authUser, authPwd)
+		authString = auth.CalcAuthStr(authUser, authPwd)
 	}
 
-	ips := getIPs()
-	ip := selectInterface(ips)
+	ips := utils.GetIPs()
+	var ip string
+	if netInterfaceIndex >= 0 {
+		keys := utils.Keys(ips)
+		if netInterfaceIndex < len(keys) {
+			ip = ips[keys[netInterfaceIndex]]
+		} else {
+			log.Fatal("Invalid network interface index.")
+		}
+	} else {
+		ip = selectInterface(ips)
+	}
 	host := fmt.Sprintf("%s:%d", ip, port)
 	baseURI = "http://" + host
 
-	http.Handle(qrPattern, authMiddleware(http.HandlerFunc(qrServePage)))
-	http.Handle(filePattern, authMiddleware(http.StripPrefix(filePattern, wrapFSHandler(http.FileServer(http.FS(suffixDirFS(directory)))))))
-	http.Handle(uploadPattern, authMiddleware(http.HandlerFunc(uploadHandler)))
+	// Initialize file system
+	fileSystem := fsInternal.CreateFilesystemHandler(directory, filterSuffix)
 
-	http.Handle(clipboardPattern, authMiddleware(http.HandlerFunc(clipboardIndexHandler)))
-	http.Handle(clipboardPattern+"/generate", authMiddleware(http.HandlerFunc(generateCodeHandler)))
-	http.Handle(clipboardPattern+"/retrieve", authMiddleware(http.HandlerFunc(retrieveHandler)))
+	// Initialize handlers
+	fileHandlerObj := handlers.NewFileHandler(templateFs, baseURI, directory, filterSuffix, patchHTMLToParent)
+	uploadHandler := handlers.NewUploadHandler(templateFs, baseURI, upDirectory)
+	clipboardHandler := handlers.NewClipboardHandler(templateFs, baseURI)
+	qrcodeHandler := handlers.NewQRCodeHandler(templateFs, baseURI, qrPattern)
 
+	// Set up routes
+	// Serve static files with proper MIME types
+	http.HandleFunc("/static/css/styles.css", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/css")
+		_, err := w.Write(stylesCSS)
+		if err != nil {
+			log.Println(err)
+		}
+	})
+	http.HandleFunc("/static/css/font-awesome_5.15.4_all.min.css", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/css")
+		_, err := w.Write(stylesCSS2)
+		if err != nil {
+			log.Println(err)
+		}
+	})
+	http.HandleFunc("/static/webfonts/fa-solid-900.woff2", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/octet-stream; charset=utf-8")
+		_, err := w.Write(webfont)
+		if err != nil {
+			log.Println(err)
+		}
+	})
+
+	http.Handle(qrPattern, auth.Middleware(
+		http.HandlerFunc(qrcodeHandler.QRCodeHandler), authString, noAuth, banTimeoutVar, banCountVar))
+
+	// 恢复原来的文件处理程序注册
+	http.Handle(filePattern, auth.Middleware(
+		http.StripPrefix(filePattern, fileHandlerObj.WrapFSHandler(http.FileServer(http.FS(fileSystem)))),
+		authString, noAuth, banTimeoutVar, banCountVar))
+
+	http.Handle(uploadPattern, auth.Middleware(
+		http.HandlerFunc(uploadHandler.HandleUpload),
+		authString, noAuth, banTimeoutVar, banCountVar))
+	http.Handle(clipboardPattern, auth.Middleware(
+		http.HandlerFunc(clipboardHandler.ClipboardIndexHandler),
+		authString, noAuth, banTimeoutVar, banCountVar))
+
+	http.Handle(clipboardPattern+"/generate", auth.Middleware(
+		http.HandlerFunc(clipboardHandler.GenerateClipboardCode),
+		authString, noAuth, banTimeoutVar, banCountVar))
+
+	http.Handle(clipboardPattern+"/retrieve", auth.Middleware(
+		http.HandlerFunc(clipboardHandler.RetrieveClipboardContent),
+		authString, noAuth, banTimeoutVar, banCountVar))
+
+	// Start server
 	log.Printf("Listen at %s\n", host)
-	log.Printf("Access files by http://%s\n", host+filePattern)
+	log.Printf("Access files by http://%s%s\n", host, filePattern)
 
 	if !noQRCode {
 		err := open.Run(baseURI + qrPattern)
@@ -166,6 +168,7 @@ func main() {
 			log.Printf("err: %v", err)
 		}
 	}
+
 	if serverKey == "" || serverCrt == "" {
 		log.Fatal(http.ListenAndServe(host, nil))
 	} else {
@@ -186,10 +189,10 @@ func selectInterface(ips map[string]string) string {
 			return v
 		}
 	default:
-		keys := keys(ips)
+		keys := utils.Keys(ips)
 		go readUserInput(keys, ips, ch)
 		select {
-		case <-time.After(time.Second * time.Duration(timeout)):
+		case <-time.After(time.Second * 30):
 			fmt.Println()
 			log.Printf("Input timeout, using %s\t%s\n", keys[0], ips[keys[0]])
 			return ips[keys[0]]
@@ -202,255 +205,19 @@ func selectInterface(ips map[string]string) string {
 			}
 		}
 	}
-
 	return ""
 }
 
 func readUserInput(keys []string, ips map[string]string, ch chan int) {
-	defer func() { close(ch) }()
-	fmt.Printf("You hava more than 1 NIC, please select one, or we listen on all the NICs.\n\n")
-	for i, v := range keys {
-		fmt.Printf("%2d\t%-16s\t%-s\n", i, v, ips[v])
+	for i, k := range keys {
+		fmt.Printf("(%d): %s\t%s\n", i, k, ips[k])
 	}
+	fmt.Printf("Select interface by index [0-%d] ? ", len(keys)-1)
 
-	fmt.Printf("Please input the interface index[0]: ")
-	var idx int
-	fmt.Scanf("%d", &idx)
-	ch <- idx
-}
-
-func keys(m map[string]string) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-func getFontSize(r *http.Request) int {
-	if isMobile(r.Header.Get("User-Agent")) {
-		return 300
-	}
-
-	return 100
-}
-
-func isMobile(ua string) bool {
-	ua = strings.ToLower(ua)
-
-	mobileUAs := map[string]struct{}{
-		"iphone":        {},
-		"ipod":          {},
-		"ipad":          {},
-		"android":       {},
-		"windows phone": {},
-		"googletv":      {},
-	}
-	for k := range mobileUAs {
-		if strings.Contains(ua, k) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func clipboardIndexHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.New("clipboard").Parse(`
-<div class="nav">
-  <li><a href="{{ .GetFiles }}" class="child">Get Files</a></li>
-
-  <li><a href="{{ .ToQrcode }}" class="child">QR Code</a></li>
-
-  <li><a href="{{ .UploadFiles }}" class="child">Upload</a></li>
-
-  <li><a href="{{ .Clipboard }}" class="child">Clipboard</a></li>
-
-  <li><a href="../" class="child">../</a></li>
-</div>
-	<!DOCTYPE html>
-	<html lang="en">
-	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Online Clipboard</title>
-		<style>
-			body {
-				font-family: 'Arial', sans-serif;
-				text-align: center;
-				margin: 20px;
-			}
-			h1 {
-				color: #333;
-			}
-			form {
-				margin-top: 20px;
-			}
-			label {
-				display: block;
-				margin-bottom: 5px;
-				color: #666;
-			}
-			textarea {
-				width: 90%;
-				padding: 10px;
-				box-sizing: border-box;
-			}
-			.code-input {
-    padding: 2px 2px;
-    border-radius: 3px;
-    box-shadow: 0px 2px 6px rgba(19, 18, 66, 0.07);
-    border-width: 2px;
-				width: 30%;
-			}
-			button {
-				padding: 10px;
-				background-color: #4CAF50;
-				color: white;
-				border: none;
-				border-radius: 4px;
-				cursor: pointer;
-			}
-
-		.copypaste {
-		    border-radius: 13px;
-		    padding: 15px;
-		    padding-bottom: 32px;
-		    border: solid 2px #f9cd25;
-		    width: 90%!important;
-		}
-
-    #content {
-        display: inline-block;
-        width: 74%; /* 90% - 16% = 74% */
-        height: 60%;
-        box-sizing: border-box;
-    }
-
-    #generateButton {
-        display: inline-block;
-        width: 24%; /* 90% - 16% = 74% + 2% margin */
-        margin-left: 2%; /* 2% margin */
-    }
-
-.row {
-    display: flex;
-    flex-wrap: wrap;
-}
-
-.row-2 {
-    flex: 0 0 auto;
-    width: 20%;
-}
-
-.button-container {
-    margin-top: 10px;
-    flex: 0 0 auto;
-    width: 80%;
-    margin-left: auto; /* 将 button-container 靠右对齐 */
-}
-
-		</style>
-		<script>
-			function generateCode() {
-			    const host = window.location.hostname;
-			    const port = window.location.port;
-				const content = document.getElementById("content").value;
-
-				fetch(`+"`"+"http://${host}:${port}/clipboard/generate"+"`"+`, {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/x-www-form-urlencoded",
-					},
-					body: "content=" + encodeURIComponent(content),
-				})
-					.then(response => response.text())
-					.then(code => {
-						document.getElementById("code").value = code;
-					})
-					.catch(error => console.error('Error generating code:', error));
-			}
-
-			function retrieveContent() {
-			    const host = window.location.hostname;
-			    const port = window.location.port;
-				const code = document.getElementById("code").value;
-				fetch(`+"`"+"http://${host}:${port}/clipboard/retrieve?code="+"`"+` + code)
-					.then(response => response.text())
-					.then(content => {
-						document.getElementById("content").value = content;
-					})
-					.catch(error => console.error('Error retrieving content:', error));
-			}
-		</script>
-	</head>
-	<body>
-		<h1>Online Clipboard</h1>
-    <form action="/clipboard/generate" method="post" id="clipboardForm">
-            <textarea id="content" name="content" class="copypaste" placeholder="Text Goes here"></textarea>
-        <div class="row">
-        <div class="row-2"></div>
-        <div class="button-container">
-            <button type="button" id="generateButton" onclick="generateCode()">Share</button>
-			<input type="text" id="code" name="code" class="code-input" required>
-			<button type="button" onclick="retrieveContent()">Retrieve</button>
-        </div>
-        </div>
-    </form>
-
-
-	</body>
-	</html>
-	`)
+	var i int
+	_, err := fmt.Scanf("%d", &i)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		log.Fatal(err)
 	}
-		data := Head{
-			GetOrUpload: GetOrUpload{
-				GetFiles:    filePattern,
-				UploadFiles: uploadPattern,
-Clipboard: clipboardPattern,
-			},
-			ToQrcode: qrPattern,
-			Title:    "Online Clipboard",
-			FontSize: getFontSize(r),
-		}
-	tmpl.Execute(w, data)
-}
-
-func generateCodeHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	content := r.Form.Get("content")
-	if content == "" {
-		http.Error(w, "Content cannot be empty", http.StatusBadRequest)
-		return
-	}
-
-	code := generateUniqueCode()
-	clipboardData[code] = content
-
-	w.Write([]byte(code))
-}
-
-func retrieveHandler(w http.ResponseWriter, r *http.Request) {
-	code := r.FormValue("code")
-	content, ok := clipboardData[code]
-	if !ok {
-		http.Error(w, "Invalid code", http.StatusNotFound)
-		return
-	}
-
-	w.Write([]byte(content))
-}
-
-func generateUniqueCode() string {
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	codeLength := 6
-	b := make([]byte, codeLength)
-	for i := range b {
-		b[i] = charset[rand.Intn(len(charset))]
-	}
-	return string(b)
+	ch <- i
 }
