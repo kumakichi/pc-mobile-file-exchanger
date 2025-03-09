@@ -377,6 +377,35 @@ body {
     opacity: 1;
 }
 
+.file-download-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+    cursor: pointer;
+    opacity: 0.9;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    flex-shrink: 0;
+}
+
+
+.file-download-btn:hover {
+    opacity: 1;
+    transform: scale(1.1);
+    background-color: #0b7dda;
+}
+
+.file-download-btn i {
+    font-size: 0.9rem;
+}
+
 /* 桌面端显示文件条目的悬停效果 */
 @media (min-width: 769px) {
     .file-link-text {
@@ -413,22 +442,27 @@ body {
         grid-template-columns: 1fr; /* 手机上使用单列布局 */
         gap: 0.8rem;
     }
-
+    
     .file-item {
         padding: 0.7rem;
         position: relative;
-        padding-bottom: 2rem; /* 为展开按钮留出空间 */
+        padding-bottom: 2.5rem; /* 增加底部padding以容纳展开按钮 */
+        padding-right: 45px; /* 为下载按钮留出空间 */
+        min-height: 60px; /* 确保有足够高度来容纳所有元素 */
+    }
+    
+    /* 手机上下载按钮位置调整 */
+    .file-download-btn {
+        top: 0.7rem;
+        right: 0.7rem;
+        width: 32px;
+        height: 32px;
     }
     
     /* 手机上更改文件链接的显示方式，使用两行显示 */
     .file-link {
         display: flex;
         align-items: flex-start; /* 靠上对齐，允许文件名换行 */
-    }
-    
-    .file-link i {
-        margin-top: 0.2rem; /* 图标稍微向下调整 */
-        flex-shrink: 0;
     }
     
     .file-link-text {
@@ -477,12 +511,30 @@ body {
 
 @media (max-width: 480px) {
     .file-item {
-        padding: 0.8rem;
-        margin-bottom: 0.3rem;
+        padding: 0.6rem;
+        padding-bottom: 2.2rem; /* 确保有足够空间容纳展开按钮 */
+        padding-right: 40px; /* 为下载按钮留空间 */
+    }
+    
+    .file-download-btn {
+        width: 28px;
+        height: 28px;
+        top: 0.6rem;
+        right: 0.6rem;
+    }
+    
+    .file-download-btn i {
+        font-size: 0.8rem;
+    }
+    
+    .toggle-expand {
+        bottom: 6px;
+        right: 6px;
+        padding: 3px 7px;
     }
     
     .file-link-text {
-        font-size: 0.95rem; /* 小屏幕上稍微缩小字体 */
+        font-size: 0.9rem;
     }
     
     .nav {

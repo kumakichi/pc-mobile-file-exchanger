@@ -51,7 +51,31 @@
                     if (isDirectory) {
                         fileLink.innerHTML = `<i class="fas fa-folder"></i> <span class="file-link-text">${fileName}</span>`;
                     } else {
+                        // create file download button
+                        const downloadBtn = document.createElement('button');
+                        downloadBtn.className = 'file-download-btn';
+                        downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
+                        downloadBtn.setAttribute('aria-label', 'download file');
+                        downloadBtn.setAttribute('title', 'download');
+
+                        // download button click event
+                        downloadBtn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            const downloadLink = document.createElement('a');
+                            downloadLink.href = originalHref;
+                            downloadLink.download = fileName;
+
+                            document.body.appendChild(downloadLink);
+                            downloadLink.click();
+                            document.body.removeChild(downloadLink);
+                        });
+
                         fileLink.innerHTML = `<i class="fas fa-file"></i> <span class="file-link-text">${fileName}</span>`;
+
+                        // add download button to the head of fileItem
+                        fileItem.appendChild(downloadBtn);
                     }
                     
                     // 对于移动设备，总是添加展开/收缩按钮
@@ -59,7 +83,7 @@
                     const toggleBtn = document.createElement('button');
                     toggleBtn.className = 'toggle-expand';
                     toggleBtn.textContent = '+';
-                    toggleBtn.setAttribute('aria-label', '展开文件名');
+                    toggleBtn.setAttribute('aria-label', 'expand filename');
                     
                     // 设置展开/收缩切换功能
                     const textSpan = fileLink.querySelector('.file-link-text');
